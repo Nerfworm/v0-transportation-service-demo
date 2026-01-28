@@ -1,20 +1,29 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bus, ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { submitTransportRequest } from "@/app/actions/requests"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { submitTransportRequest, getHouses, type House } from "@/app/actions/requests"
 
 export default function ClientRequestPage() {
+  const [houses, setHouses] = useState<House[]>([])
+  const [isLoadingHouses, setIsLoadingHouses] = useState(true)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    houseAddress: "",
+    houseId: "",
     email: "",
     phone: "",
     sourceAddress: "",
@@ -29,10 +38,25 @@ export default function ClientRequestPage() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    async function loadHouses() {
+      const fetchedHouses = await getHouses()
+      setHouses(fetchedHouses)
+      setIsLoadingHouses(false)
+    }
+    loadHouses()
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setError(null)
+
+    if (!formData.houseId) {
+      setError("Please select a house")
+      setIsSubmitting(false)
+      return
+    }
 
     // Combine date and time for pickup and dropoff
     const pickupDateTime = formData.pickupDate && formData.pickupTime
@@ -46,7 +70,7 @@ export default function ClientRequestPage() {
     const result = await submitTransportRequest({
       firstName: formData.firstName,
       lastName: formData.lastName,
-      houseAddress: formData.houseAddress || undefined,
+      houseId: parseInt(formData.houseId, 10),
       email: formData.email || undefined,
       phone: formData.phone || undefined,
       sourceAddress: formData.sourceAddress,
@@ -63,7 +87,7 @@ export default function ClientRequestPage() {
       setFormData({
         firstName: "",
         lastName: "",
-        houseAddress: "",
+        houseId: "",
         email: "",
         phone: "",
         sourceAddress: "",
@@ -150,6 +174,37 @@ export default function ClientRequestPage() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="house">House / Residence <span className="text-destructive">*</span></Label>
+              {isLoadingHouses ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading houses...
+                </div>
+              ) : houses.length === 0 ? (
+                <div className="text-muted-foreground py-2">
+                  No houses available. Please contact an administrator.
+                </div>
+              ) : (
+                <Select
+                  value={formData.houseId}
+                  onValueChange={(value) => setFormData({ ...formData, houseId: value })}
+                  required
+                >
+                  <SelectTrigger id="house">
+                    <SelectValue placeholder="Select a house" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {houses.map((house) => (
+                      <SelectItem key={house.id} value={house.id.toString()}>
+                        {house.address}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email (optional)</Label>
@@ -171,16 +226,6 @@ export default function ClientRequestPage() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="houseAddress">House/Residence Address (optional)</Label>
-              <Input
-                id="houseAddress"
-                placeholder="House or residence address (if different from pickup)"
-                value={formData.houseAddress}
-                onChange={(e) => setFormData({ ...formData, houseAddress: e.target.value })}
-              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,7 +320,11 @@ export default function ClientRequestPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full md:w-auto px-8 py-2" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              className="w-full md:w-auto px-8 py-2" 
+              disabled={isSubmitting || isLoadingHouses || houses.length === 0}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

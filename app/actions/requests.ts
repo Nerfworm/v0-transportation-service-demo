@@ -8,10 +8,31 @@ export type RequestResult = {
   requestId?: number
 }
 
+export type House = {
+  id: number
+  address: string
+}
+
+export async function getHouses(): Promise<House[]> {
+  const supabase = getSupabaseAnonClient()
+
+  const { data: houses, error } = await supabase
+    .from("house")
+    .select("id, address")
+    .order("address", { ascending: true })
+
+  if (error) {
+    console.error("Error fetching houses:", error)
+    return []
+  }
+
+  return houses || []
+}
+
 export async function submitTransportRequest(data: {
   firstName: string
   lastName: string
-  houseAddress?: string
+  houseId: number
   email?: string
   phone?: string
   sourceAddress: string
@@ -24,34 +45,21 @@ export async function submitTransportRequest(data: {
   // This ensures the anon RLS policies are used (not authenticated user policies)
   const supabase = getSupabaseAnonClient()
 
-  // Try to find existing house by address (for anonymous requests, we skip house creation
-  // since RLS policies require authentication to insert houses)
-  let houseId: number | null = null
-  
-  const houseAddress = data.houseAddress || data.sourceAddress
-  
-  const { data: existingHouse } = await supabase
-    .from("house")
-    .select("id")
-    .eq("address", houseAddress)
-    .maybeSingle()
-
-  if (existingHouse) {
-    houseId = existingHouse.id
+  // Validate that house_id is provided
+  if (!data.houseId) {
+    return { success: false, error: "House selection is required" }
   }
-  // If no existing house found, we proceed without house_id
-  // The source_address and destination_address fields store the location info
 
   // Parse phone to integer if provided (schema uses int8)
   const phoneNumber = data.phone ? parseInt(data.phone.replace(/\D/g, ''), 10) : null
 
-  // Insert the request (house_id is optional for anonymous submissions)
+  // Insert the request with required house_id
   const { data: request, error } = await supabase
     .from("request")
     .insert({
       first_name: data.firstName,
       last_name: data.lastName,
-      house_id: houseId,
+      house_id: data.houseId,
       email: data.email || null,
       phone: phoneNumber,
       source_address: data.sourceAddress,
