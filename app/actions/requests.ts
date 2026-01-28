@@ -22,8 +22,9 @@ export async function submitTransportRequest(data: {
 }): Promise<RequestResult> {
   const supabase = await getSupabaseServerClient()
 
-  // Find or create house based on address
-  let houseId: number
+  // Try to find existing house by address (for anonymous requests, we skip house creation
+  // since RLS policies require authentication to insert houses)
+  let houseId: number | null = null
   
   const houseAddress = data.houseAddress || data.sourceAddress
   
@@ -35,23 +36,14 @@ export async function submitTransportRequest(data: {
 
   if (existingHouse) {
     houseId = existingHouse.id
-  } else {
-    const { data: newHouse, error: houseError } = await supabase
-      .from("house")
-      .insert({ address: houseAddress })
-      .select("id")
-      .single()
-    
-    if (houseError || !newHouse) {
-      return { success: false, error: houseError?.message || "Failed to create house record" }
-    }
-    houseId = newHouse.id
   }
+  // If no existing house found, we proceed without house_id
+  // The source_address and destination_address fields store the location info
 
   // Parse phone to integer if provided (schema uses int8)
   const phoneNumber = data.phone ? parseInt(data.phone.replace(/\D/g, ''), 10) : null
 
-  // Insert the request
+  // Insert the request (house_id is optional for anonymous submissions)
   const { data: request, error } = await supabase
     .from("request")
     .insert({
