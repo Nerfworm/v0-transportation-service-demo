@@ -11,36 +11,45 @@ export type RequestResult = {
 export async function submitTransportRequest(data: {
   firstName: string
   lastName: string
-  houseName?: string
+  houseAddress?: string
   email?: string
   phone?: string
   sourceAddress: string
   destinationAddress: string
-  arrivalTime: string
+  pickupTime: string
+  dropoffTime: string
   comments?: string
 }): Promise<RequestResult> {
   const supabase = await getSupabaseServerClient()
 
-  // Find or create house if house name provided
-  let houseId: number | null = null
-  if (data.houseName) {
-    const { data: existingHouse } = await supabase
-      .from("house")
-      .select("id")
-      .eq("name", data.houseName)
-      .single()
+  // Find or create house based on address
+  let houseId: number
+  
+  const houseAddress = data.houseAddress || data.sourceAddress
+  
+  const { data: existingHouse } = await supabase
+    .from("house")
+    .select("id")
+    .eq("address", houseAddress)
+    .single()
 
-    if (existingHouse) {
-      houseId = existingHouse.id
-    } else {
-      const { data: newHouse } = await supabase
-        .from("house")
-        .insert({ name: data.houseName, address: data.sourceAddress })
-        .select("id")
-        .single()
-      houseId = newHouse?.id || null
+  if (existingHouse) {
+    houseId = existingHouse.id
+  } else {
+    const { data: newHouse, error: houseError } = await supabase
+      .from("house")
+      .insert({ address: houseAddress })
+      .select("id")
+      .single()
+    
+    if (houseError || !newHouse) {
+      return { success: false, error: houseError?.message || "Failed to create house record" }
     }
+    houseId = newHouse.id
   }
+
+  // Parse phone to integer if provided (schema uses int8)
+  const phoneNumber = data.phone ? parseInt(data.phone.replace(/\D/g, ''), 10) : null
 
   // Insert the request
   const { data: request, error } = await supabase
@@ -50,10 +59,11 @@ export async function submitTransportRequest(data: {
       last_name: data.lastName,
       house_id: houseId,
       email: data.email || null,
-      phone_number: data.phone || null,
+      phone: phoneNumber,
       source_address: data.sourceAddress,
       destination_address: data.destinationAddress,
-      requested_dropoff_time: data.arrivalTime,
+      requested_pickup_time: data.pickupTime,
+      requested_dropoff_time: data.dropoffTime,
       request_comment: data.comments || null,
       approved: "Pending",
     })
@@ -67,7 +77,7 @@ export async function submitTransportRequest(data: {
   return { success: true, requestId: request.id }
 }
 
-export async function getRequests(status?: "Pending" | "Approved" | "Denied") {
+export async function getRequests(status?: "Pending" | "Approved" | "Rejected") {
   const supabase = await getSupabaseServerClient()
 
   let query = supabase
@@ -77,16 +87,17 @@ export async function getRequests(status?: "Pending" | "Approved" | "Denied") {
       first_name,
       last_name,
       email,
-      phone_number,
+      phone,
       source_address,
       destination_address,
+      requested_pickup_time,
       requested_dropoff_time,
       request_comment,
       approved,
-      created_at,
-      house:house_id(id, name, address)
+      reviewed_at,
+      house:house_id(id, address)
     `)
-    .order("created_at", { ascending: false })
+    .order("requested_pickup_time", { ascending: false })
 
   if (status) {
     query = query.eq("approved", status)
@@ -104,13 +115,20 @@ export async function getRequests(status?: "Pending" | "Approved" | "Denied") {
 
 export async function updateRequestStatus(
   requestId: number,
-  status: "Approved" | "Denied"
+  status: "Approved" | "Rejected",
+  reviewedBy?: number,
+  approvalComment?: string
 ): Promise<RequestResult> {
   const supabase = await getSupabaseServerClient()
 
   const { error } = await supabase
     .from("request")
-    .update({ approved: status })
+    .update({ 
+      approved: status,
+      reviewed_by: reviewedBy || null,
+      reviewed_at: new Date().toISOString(),
+      approval_comment: approvalComment || null
+    })
     .eq("id", requestId)
 
   if (error) {
@@ -131,9 +149,10 @@ export async function getRequestsForCalendar(startDate: Date, endDate: Date) {
       last_name,
       source_address,
       destination_address,
+      requested_pickup_time,
       requested_dropoff_time,
       approved,
-      transport:transport(id, staff_id, account:staff_id(first_name, last_name))
+      transport:transport_id(id, staff_id, pickup_time, dropoff_time)
     `)
     .eq("approved", "Approved")
     .gte("requested_dropoff_time", startDate.toISOString())
@@ -145,4 +164,20 @@ export async function getRequestsForCalendar(startDate: Date, endDate: Date) {
   }
 
   return requests || []
+}
+
+export async function getPendingRequestCount() {
+  const supabase = await getSupabaseServerClient()
+
+  const { count, error } = await supabase
+    .from("request")
+    .select("*", { count: "exact", head: true })
+    .eq("approved", "Pending")
+
+  if (error) {
+    console.error("Error fetching pending count:", error)
+    return 0
+  }
+
+  return count || 0
 }

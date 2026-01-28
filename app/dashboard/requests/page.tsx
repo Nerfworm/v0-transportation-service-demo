@@ -31,10 +31,10 @@ export default async function RequestsPage() {
     revalidatePath("/dashboard/requests")
   }
 
-  const denyRequest = async (formData: FormData) => {
+  const rejectRequest = async (formData: FormData) => {
     "use server"
     const requestId = Number(formData.get("requestId"))
-    await updateRequestStatus(requestId, "Denied")
+    await updateRequestStatus(requestId, "Rejected")
     revalidatePath("/dashboard/requests")
   }
 
@@ -42,8 +42,8 @@ export default async function RequestsPage() {
     switch (status) {
       case "Approved":
         return <Badge className="bg-green-100 text-green-800">Approved</Badge>
-      case "Denied":
-        return <Badge className="bg-red-100 text-red-800">Denied</Badge>
+      case "Rejected":
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>
       default:
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
     }
@@ -119,7 +119,7 @@ export default async function RequestsPage() {
                       {request.first_name} {request.last_name}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {request.email || "No email"} {request.phone_number ? `| ${request.phone_number}` : ""}
+                      {request.email || "No email"} {request.phone ? `| ${request.phone}` : ""}
                     </p>
                   </div>
                   {getStatusBadge(request.approved)}
@@ -146,14 +146,21 @@ export default async function RequestsPage() {
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-xs text-muted-foreground">Arrival Time</p>
-                          <p className="text-sm">{formatDate(request.arrival_time)}</p>
+                          <p className="text-xs text-muted-foreground">Pickup Time</p>
+                          <p className="text-sm">{formatDate(request.requested_pickup_time)}</p>
                         </div>
                       </div>
-                      {request.comments && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Dropoff Time</p>
+                          <p className="text-sm">{formatDate(request.requested_dropoff_time)}</p>
+                        </div>
+                      </div>
+                      {request.request_comment && (
                         <div>
                           <p className="text-xs text-muted-foreground">Comments</p>
-                          <p className="text-sm">{request.comments}</p>
+                          <p className="text-sm">{request.request_comment}</p>
                         </div>
                       )}
                     </div>
@@ -168,11 +175,11 @@ export default async function RequestsPage() {
                           Approve
                         </Button>
                       </form>
-                      <form action={denyRequest}>
+                      <form action={rejectRequest}>
                         <input type="hidden" name="requestId" value={request.id} />
                         <Button type="submit" size="sm" variant="destructive" className="gap-1">
                           <X className="h-4 w-4" />
-                          Deny
+                          Reject
                         </Button>
                       </form>
                     </div>

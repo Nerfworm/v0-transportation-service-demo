@@ -14,13 +14,15 @@ export default function ClientRequestPage() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    houseName: "",
+    houseAddress: "",
     email: "",
     phone: "",
     sourceAddress: "",
     destinationAddress: "",
-    arrivalDate: "",
-    arrivalTime: "",
+    pickupDate: "",
+    pickupTime: "",
+    dropoffDate: "",
+    dropoffTime: "",
     comments: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -32,20 +34,25 @@ export default function ClientRequestPage() {
     setIsSubmitting(true)
     setError(null)
 
-    // Combine date and time for arrival_time
-    const arrivalDateTime = formData.arrivalDate && formData.arrivalTime
-      ? new Date(`${formData.arrivalDate}T${formData.arrivalTime}`).toISOString()
+    // Combine date and time for pickup and dropoff
+    const pickupDateTime = formData.pickupDate && formData.pickupTime
+      ? new Date(`${formData.pickupDate}T${formData.pickupTime}`).toISOString()
+      : new Date().toISOString()
+
+    const dropoffDateTime = formData.dropoffDate && formData.dropoffTime
+      ? new Date(`${formData.dropoffDate}T${formData.dropoffTime}`).toISOString()
       : new Date().toISOString()
 
     const result = await submitTransportRequest({
       firstName: formData.firstName,
       lastName: formData.lastName,
-      houseName: formData.houseName || undefined,
+      houseAddress: formData.houseAddress || undefined,
       email: formData.email || undefined,
       phone: formData.phone || undefined,
       sourceAddress: formData.sourceAddress,
       destinationAddress: formData.destinationAddress,
-      arrivalTime: arrivalDateTime,
+      pickupTime: pickupDateTime,
+      dropoffTime: dropoffDateTime,
       comments: formData.comments || undefined,
     })
 
@@ -56,13 +63,15 @@ export default function ClientRequestPage() {
       setFormData({
         firstName: "",
         lastName: "",
-        houseName: "",
+        houseAddress: "",
         email: "",
         phone: "",
         sourceAddress: "",
         destinationAddress: "",
-        arrivalDate: "",
-        arrivalTime: "",
+        pickupDate: "",
+        pickupTime: "",
+        dropoffDate: "",
+        dropoffTime: "",
         comments: "",
       })
     } else {
@@ -118,7 +127,7 @@ export default function ClientRequestPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
@@ -137,15 +146,6 @@ export default function ClientRequestPage() {
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="houseName">House Name</Label>
-                <Input
-                  id="houseName"
-                  placeholder="House Name"
-                  value={formData.houseName}
-                  onChange={(e) => setFormData({ ...formData, houseName: e.target.value })}
                 />
               </div>
             </div>
@@ -173,12 +173,22 @@ export default function ClientRequestPage() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="houseAddress">House/Residence Address (optional)</Label>
+              <Input
+                id="houseAddress"
+                placeholder="House or residence address (if different from pickup)"
+                value={formData.houseAddress}
+                onChange={(e) => setFormData({ ...formData, houseAddress: e.target.value })}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sourceAddress">Source Address</Label>
+                <Label htmlFor="sourceAddress">Pickup Address</Label>
                 <Input
                   id="sourceAddress"
-                  placeholder="Source Address"
+                  placeholder="Pickup Address"
                   value={formData.sourceAddress}
                   onChange={(e) => setFormData({ ...formData, sourceAddress: e.target.value })}
                   required
@@ -201,26 +211,56 @@ export default function ClientRequestPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="arrivalDate">Arrival Date</Label>
-                <Input
-                  id="arrivalDate"
-                  type="date"
-                  value={formData.arrivalDate}
-                  onChange={(e) => setFormData({ ...formData, arrivalDate: e.target.value })}
-                  required
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <Label className="text-base font-medium">Requested Pickup Time</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="pickupDate" className="text-sm text-muted-foreground">Date</Label>
+                    <Input
+                      id="pickupDate"
+                      type="date"
+                      value={formData.pickupDate}
+                      onChange={(e) => setFormData({ ...formData, pickupDate: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pickupTime" className="text-sm text-muted-foreground">Time</Label>
+                    <Input
+                      id="pickupTime"
+                      type="time"
+                      value={formData.pickupTime}
+                      onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="arrivalTime">Arrival Time</Label>
-                <Input
-                  id="arrivalTime"
-                  type="time"
-                  value={formData.arrivalTime}
-                  onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
-                  required
-                />
+              <div className="space-y-4">
+                <Label className="text-base font-medium">Requested Dropoff Time</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="dropoffDate" className="text-sm text-muted-foreground">Date</Label>
+                    <Input
+                      id="dropoffDate"
+                      type="date"
+                      value={formData.dropoffDate}
+                      onChange={(e) => setFormData({ ...formData, dropoffDate: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dropoffTime" className="text-sm text-muted-foreground">Time</Label>
+                    <Input
+                      id="dropoffTime"
+                      type="time"
+                      value={formData.dropoffTime}
+                      onChange={(e) => setFormData({ ...formData, dropoffTime: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
