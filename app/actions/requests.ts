@@ -53,7 +53,7 @@ export async function submitTransportRequest(data: {
       phone_number: data.phone || null,
       source_address: data.sourceAddress,
       destination_address: data.destinationAddress,
-      arrival_time: data.arrivalTime,
+      requested_dropoff_time: data.arrivalTime,
       comments: data.comments || null,
       approved: "Pending",
     })
@@ -80,7 +80,7 @@ export async function getRequests(status?: "Pending" | "Approved" | "Denied") {
       phone_number,
       source_address,
       destination_address,
-      arrival_time,
+      requested_dropoff_time,
       comments,
       approved,
       created_at,
@@ -131,13 +131,13 @@ export async function getRequestsForCalendar(startDate: Date, endDate: Date) {
       last_name,
       source_address,
       destination_address,
-      arrival_time,
+      requested_dropoff_time,
       approved,
       transport:transport(id, staff_id, account:staff_id(first_name, last_name))
     `)
     .eq("approved", "Approved")
-    .gte("arrival_time", startDate.toISOString())
-    .lte("arrival_time", endDate.toISOString())
+    .gte("requested_dropoff_time", startDate.toISOString())
+    .lte("requested_dropoff_time", endDate.toISOString())
 
   if (error) {
     console.error("Error fetching calendar requests:", error)
