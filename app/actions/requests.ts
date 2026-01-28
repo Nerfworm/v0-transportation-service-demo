@@ -54,7 +54,7 @@ export async function submitTransportRequest(data: {
       source_address: data.sourceAddress,
       destination_address: data.destinationAddress,
       requested_dropoff_time: data.arrivalTime,
-      comments: data.comments || null,
+      request_comment: data.comments || null,
       approved: "Pending",
     })
     .select("id")
@@ -81,7 +81,7 @@ export async function getRequests(status?: "Pending" | "Approved" | "Denied") {
       source_address,
       destination_address,
       requested_dropoff_time,
-      comments,
+      request_comment,
       approved,
       created_at,
       house:house_id(id, name, address)
