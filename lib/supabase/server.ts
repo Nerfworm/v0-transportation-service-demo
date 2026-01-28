@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 
 export async function getSupabaseServerClient() {
@@ -19,4 +20,13 @@ export async function getSupabaseServerClient() {
       },
     },
   })
+}
+
+// Anonymous client for public operations (no cookie-based auth)
+// This ensures the anon role is used for RLS policies
+export function getSupabaseAnonClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 }

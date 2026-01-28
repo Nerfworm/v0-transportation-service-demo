@@ -1,6 +1,6 @@
 "use server"
 
-import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { getSupabaseServerClient, getSupabaseAnonClient } from "@/lib/supabase/server"
 
 export type RequestResult = {
   success: boolean
@@ -20,7 +20,9 @@ export async function submitTransportRequest(data: {
   dropoffTime: string
   comments?: string
 }): Promise<RequestResult> {
-  const supabase = await getSupabaseServerClient()
+  // Use anonymous client for public request submissions
+  // This ensures the anon RLS policies are used (not authenticated user policies)
+  const supabase = getSupabaseAnonClient()
 
   // Try to find existing house by address (for anonymous requests, we skip house creation
   // since RLS policies require authentication to insert houses)
