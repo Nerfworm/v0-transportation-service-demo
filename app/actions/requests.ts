@@ -32,7 +32,7 @@ export async function submitTransportRequest(data: {
     .from("house")
     .select("id")
     .eq("address", houseAddress)
-    .single()
+    .maybeSingle()
 
   if (existingHouse) {
     houseId = existingHouse.id
