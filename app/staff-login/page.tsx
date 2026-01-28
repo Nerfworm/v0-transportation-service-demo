@@ -1,14 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { Bus, ArrowLeft } from "lucide-react"
+import { Bus, ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { login } from "@/app/actions/auth"
 
 export default function StaffLoginPage() {
   const router = useRouter()
@@ -16,11 +16,23 @@ export default function StaffLoginPage() {
     username: "",
     password: "",
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Login attempted:", formData)
-    router.push("/dashboard")
+    setIsLoading(true)
+    setError(null)
+
+    const result = await login(formData.username, formData.password)
+
+    setIsLoading(false)
+
+    if (result.success) {
+      router.push("/dashboard")
+    } else {
+      setError(result.error || "Login failed")
+    }
   }
 
   return (
@@ -41,6 +53,12 @@ export default function StaffLoginPage() {
             </div>
             <h1 className="text-2xl font-bold text-foreground">Transportation Service</h1>
           </div>
+
+          {error && (
+            <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -66,8 +84,15 @@ export default function StaffLoginPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full py-2">
-              Login
+            <Button type="submit" className="w-full py-2" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Logging in...
+                </>
+              ) : (
+                "Login"
+              )}
             </Button>
           </form>
 

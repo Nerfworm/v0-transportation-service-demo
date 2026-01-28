@@ -1,15 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { Bus, ArrowLeft } from "lucide-react"
+import { Bus, ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { submitTransportRequest } from "@/app/actions/requests"
 
 export default function ClientRequestPage() {
   const [formData, setFormData] = useState({
@@ -20,15 +19,77 @@ export default function ClientRequestPage() {
     phone: "",
     sourceAddress: "",
     destinationAddress: "",
+    arrivalDate: "",
     arrivalTime: "",
-    amPm: "AM",
     comments: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Form submitted:", formData)
-    alert("Request submitted successfully!")
+    setIsSubmitting(true)
+    setError(null)
+
+    // Combine date and time for arrival_time
+    const arrivalDateTime = formData.arrivalDate && formData.arrivalTime
+      ? new Date(`${formData.arrivalDate}T${formData.arrivalTime}`).toISOString()
+      : new Date().toISOString()
+
+    const result = await submitTransportRequest({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      houseName: formData.houseName || undefined,
+      email: formData.email || undefined,
+      phone: formData.phone || undefined,
+      sourceAddress: formData.sourceAddress,
+      destinationAddress: formData.destinationAddress,
+      arrivalTime: arrivalDateTime,
+      comments: formData.comments || undefined,
+    })
+
+    setIsSubmitting(false)
+
+    if (result.success) {
+      setIsSuccess(true)
+      setFormData({
+        firstName: "",
+        lastName: "",
+        houseName: "",
+        email: "",
+        phone: "",
+        sourceAddress: "",
+        destinationAddress: "",
+        arrivalDate: "",
+        arrivalTime: "",
+        comments: "",
+      })
+    } else {
+      setError(result.error || "Failed to submit request")
+    }
+  }
+
+  if (isSuccess) {
+    return (
+      <main className="min-h-screen bg-muted p-4 md:p-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-card rounded-xl shadow-lg p-8 text-center">
+            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-foreground mb-2">Request Submitted!</h1>
+            <p className="text-muted-foreground mb-6">
+              Your transportation request has been submitted successfully. A coordinator will review it shortly.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button onClick={() => setIsSuccess(false)}>Submit Another Request</Button>
+              <Link href="/">
+                <Button variant="outline" className="bg-transparent">Back to Home</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -49,6 +110,12 @@ export default function ClientRequestPage() {
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-foreground">Client Request Forum</h1>
           </div>
+
+          {error && (
+            <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -134,29 +201,26 @@ export default function ClientRequestPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="arrivalTime">Arrival Time</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="arrivalDate">Arrival Date</Label>
                 <Input
-                  id="arrivalTime"
-                  type="time"
-                  placeholder="Arrival Time"
-                  value={formData.arrivalTime}
-                  onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
+                  id="arrivalDate"
+                  type="date"
+                  value={formData.arrivalDate}
+                  onChange={(e) => setFormData({ ...formData, arrivalDate: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="amPm">AM/PM</Label>
-                <Select value={formData.amPm} onValueChange={(value) => setFormData({ ...formData, amPm: value })}>
-                  <SelectTrigger id="amPm">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AM">AM</SelectItem>
-                    <SelectItem value="PM">PM</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="arrivalTime">Arrival Time</Label>
+                <Input
+                  id="arrivalTime"
+                  type="time"
+                  value={formData.arrivalTime}
+                  onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
+                  required
+                />
               </div>
             </div>
 
@@ -171,8 +235,15 @@ export default function ClientRequestPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full md:w-auto px-8 py-2">
-              Submit
+            <Button type="submit" className="w-full md:w-auto px-8 py-2" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit"
+              )}
             </Button>
           </form>
         </div>

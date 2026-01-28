@@ -1,18 +1,25 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { Bus, ArrowLeft } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bus, ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { register, getRoles } from "@/app/actions/auth"
+
+type Role = {
+  id: number
+  name: string
+  description: string | null
+}
 
 export default function RegisterPage() {
   const router = useRouter()
+  const [roles, setRoles] = useState<Role[]>([])
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -23,15 +30,46 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    getRoles().then(setRoles)
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!")
+      setError("Passwords do not match!")
       return
     }
-    console.log("Registration submitted:", formData)
-    router.push("/staff-login")
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters")
+      return
+    }
+
+    setIsLoading(true)
+
+    const result = await register({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.mobileNumber,
+      role: formData.role,
+      username: formData.username,
+      password: formData.password,
+    })
+
+    setIsLoading(false)
+
+    if (result.success) {
+      router.push("/staff-login?registered=true")
+    } else {
+      setError(result.error || "Registration failed")
+    }
   }
 
   return (
@@ -54,6 +92,12 @@ export default function RegisterPage() {
           </div>
 
           <h2 className="text-lg font-semibold text-foreground mb-6">Registration</h2>
+
+          {error && (
+            <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -110,9 +154,19 @@ export default function RegisterPage() {
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="driver">Driver</SelectItem>
-                  <SelectItem value="coordinator">Coordinator</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  {roles.length > 0 ? (
+                    roles.map((role) => (
+                      <SelectItem key={role.id} value={role.name}>
+                        {role.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="Driver">Driver</SelectItem>
+                      <SelectItem value="Coordinator">Coordinator</SelectItem>
+                      <SelectItem value="Admin">Admin</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -152,8 +206,15 @@ export default function RegisterPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full mt-6">
-              Create new account
+            <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating account...
+                </>
+              ) : (
+                "Create new account"
+              )}
             </Button>
           </form>
         </div>
