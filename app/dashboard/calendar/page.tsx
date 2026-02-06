@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bus, ChevronLeft, ChevronRight, User, LogOut } from "lucide-react"
+import { Bus, ChevronLeft, ChevronRight, User, LogOut, Calendar, Users, Settings, HelpCircle, Home as HomeIcon, Menu } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ export default function CalendarPage() {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date(2025, 10, 23))
   const [filterDriver, setFilterDriver] = useState("all")
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const handleLogout = () => {
     router.push("/")
@@ -74,58 +75,97 @@ export default function CalendarPage() {
   })
 
   return (
-    <main className="min-h-screen bg-muted">
-      <header className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-lg">
-              <Bus className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold text-foreground hidden md:inline">Transportation Service</span>
+    <main className="min-h-screen flex flex-col" style={{
+      background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)',
+      minHeight: '100vh',
+    }}>
+      {/* Top Task Bar */}
+      <header className="w-full bg-[#142850] py-3 px-6 flex items-center justify-between shadow-md">
+        {/* Left: Logo Placeholder */}
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center text-white font-bold text-2xl select-none">
+            LOGO
           </div>
-
-          <nav className="flex items-center gap-1 md:gap-2">
-            <Link href="/dashboard">
-              <Button variant="ghost" className="gap-2">
-                <span>Home</span>
+          {/* Navigation Buttons */}
+          <nav className="flex items-center gap-3 ml-2">
+            <Link href="/Home">
+              <Button className="rounded-full text-lg px-16 py-6 font-semibold" style={{ borderRadius: '2rem' }}>
+                <HomeIcon className="mr-2 w-6 h-6" /> Home
               </Button>
             </Link>
             <Link href="/dashboard/calendar">
-              <Button variant="secondary" className="gap-2">
-                <span>Calendar</span>
+              <Button className="rounded-full text-lg px-16 py-6 font-semibold" style={{ borderRadius: '2rem' }}>
+                <Calendar className="mr-2 w-6 h-6" /> Calendar
               </Button>
             </Link>
             <Link href="/dashboard/drivers">
-              <Button variant="ghost" className="gap-2">
-                <span>Drivers</span>
+              <Button className="rounded-full text-lg px-16 py-6 font-semibold" style={{ borderRadius: '2rem' }}>
+                <Users className="mr-2 w-6 h-6" /> Drivers
               </Button>
             </Link>
           </nav>
-
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarFallback className="bg-muted-foreground text-muted">
-                <User className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-            <Avatar>
-              <AvatarFallback className="bg-muted-foreground text-muted">
-                <User className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-            <Avatar>
-              <AvatarFallback className="bg-muted-foreground text-muted">
-                <User className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+        </div>
+        {/* Right: Menu Button */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            className="rounded-full text-white hover:bg-white/10 px-6 py-3 transition-transform"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Menu"
+            style={{ transform: menuOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}
+          >
+            <Menu className="w-10 h-10" />
+          </Button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Side Menu Overlay */}
+      {menuOpen && (
+        <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setMenuOpen(false)} />
+      )}
+
+      {/* Side Menu */}
+      <div
+        className="fixed top-0 right-0 h-full w-64 bg-[#142850] shadow-lg z-50 flex flex-col p-6 transition-transform"
+        style={{
+          transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.3s ease',
+        }}
+      >
+        <div className="space-y-4">
+          <Button
+            className="w-full justify-start rounded-lg px-4 py-3 text-lg font-semibold"
+            onClick={() => {
+              router.push('/settings')
+              setMenuOpen(false)
+            }}
+          >
+            <Settings className="mr-2 w-5 h-5" /> Settings
+          </Button>
+          <Button
+            className="w-full justify-start rounded-lg px-4 py-3 text-lg font-semibold"
+            onClick={() => {
+              router.push('/profile')
+              setMenuOpen(false)
+            }}
+          >
+            <User className="mr-2 w-5 h-5" /> Profile
+          </Button>
+          <Button
+            className="w-full justify-start rounded-lg px-4 py-3 text-lg font-semibold"
+            onClick={() => {
+              router.push('/help')
+              setMenuOpen(false)
+            }}
+          >
+            <HelpCircle className="mr-2 w-5 h-5" /> Help
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-foreground mb-6">Coordinator Calendar</h1>
 
         <div className="bg-card rounded-xl shadow-lg overflow-hidden">
@@ -206,6 +246,7 @@ export default function CalendarPage() {
               ))}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </main>
