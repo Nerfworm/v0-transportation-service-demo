@@ -32,8 +32,8 @@ export default function ClientRequestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-muted p-4 md:p-8">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
+      <div className="w-full max-w-2xl">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"

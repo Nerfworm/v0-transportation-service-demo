@@ -31,12 +31,12 @@ export default function RegisterPage() {
       return
     }
     console.log("Registration submitted:", formData)
-    router.push("/staff-login")
+    router.push("/dashboard/Home")
   }
 
   return (
-    <main className="min-h-screen bg-muted p-4 md:p-8">
-      <div className="max-w-lg mx-auto">
+    <main className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
+      <div className="w-full max-w-lg">
         <Link
           href="/staff-login"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"

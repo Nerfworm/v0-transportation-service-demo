@@ -20,11 +20,11 @@ export default function StaffLoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     console.log("Login attempted:", formData)
-    router.push("/dashboard")
+    router.push("/dashboard/Home")
   }
 
   return (
-    <main className="min-h-screen bg-muted flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
       <div className="w-full max-w-md">
         <Link
           href="/"

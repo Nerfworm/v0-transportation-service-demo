@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Bus, User, LogOut, Phone, Mail, Car, Calendar, Users, Settings, HelpCircle, Home as HomeIcon, Menu } from "lucide-react"
-import Link from "next/link"
+import { Bus, User, LogOut, Phone, Mail, Car } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import DashboardLayout from '@/components/DashboardLayout'
 
 const drivers = [
   {
@@ -44,126 +44,61 @@ const drivers = [
   },
 ]
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "available":
-      return "bg-green-100 text-green-800"
-    case "on-route":
-      return "bg-blue-100 text-blue-800"
-    case "off-duty":
-      return "bg-gray-100 text-gray-800"
-    default:
-      return "bg-gray-100 text-gray-800"
-  }
-}
 
 export default function DriversPage() {
-  const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [driversList, setDriversList] = useState(drivers)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    vehicle: '',
+    status: 'available',
+  })
 
-  const handleLogout = () => {
-    router.push("/")
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "available":
+        return "bg-green-100 text-green-800"
+      case "on-route":
+        return "bg-blue-100 text-blue-800"
+      case "off-duty":
+        return "bg-gray-100 text-gray-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const handleFormChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleAddDriver = () => {
+    if (formData.name && formData.email && formData.phone && formData.vehicle) {
+      setDriversList([...driversList, { ...formData, id: String(Date.now()) }])
+      setFormData({ name: '', email: '', phone: '', vehicle: '', status: 'available' })
+      setShowAddForm(false)
+    } else {
+      alert('Please fill out all fields')
+    }
   }
 
   return (
-    <main className="min-h-screen flex flex-col" style={{
-      background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)',
-      minHeight: '100vh',
-    }}>
-      {/* Top Task Bar */}
-      <header className="w-full bg-[#142850] py-3 px-6 flex items-center justify-between shadow-md">
-        {/* Left: Logo Placeholder */}
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center text-white font-bold text-2xl select-none">
-            LOGO
-          </div>
-          {/* Navigation Buttons */}
-          <nav className="flex items-center gap-3 ml-2">
-            <Link href="/Home">
-              <Button className="rounded-full text-lg px-16 py-6 font-semibold" style={{ borderRadius: '2rem' }}>
-                <HomeIcon className="mr-2 w-6 h-6" /> Home
-              </Button>
-            </Link>
-            <Link href="/dashboard/calendar">
-              <Button className="rounded-full text-lg px-16 py-6 font-semibold" style={{ borderRadius: '2rem' }}>
-                <Calendar className="mr-2 w-6 h-6" /> Calendar
-              </Button>
-            </Link>
-            <Link href="/dashboard/drivers">
-              <Button className="rounded-full text-lg px-16 py-6 font-semibold" style={{ borderRadius: '2rem' }}>
-                <Users className="mr-2 w-6 h-6" /> Drivers
-              </Button>
-            </Link>
-          </nav>
-        </div>
-        {/* Right: Menu Button */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            className="rounded-full text-white hover:bg-white/10 px-6 py-3 transition-transform"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Menu"
-            style={{ transform: menuOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}
-          >
-            <Menu className="w-10 h-10" />
-          </Button>
-        </div>
-      </header>
-
-      {/* Side Menu Overlay */}
-      {menuOpen && (
-        <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setMenuOpen(false)} />
-      )}
-
-      {/* Side Menu */}
-      <div
-        className="fixed top-0 right-0 h-full w-64 bg-[#142850] shadow-lg z-50 flex flex-col p-6 transition-transform"
-        style={{
-          transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 0.3s ease',
-        }}
-      >
-        <div className="space-y-4">
-          <Button
-            className="w-full justify-start rounded-lg px-4 py-3 text-lg font-semibold"
-            onClick={() => {
-              router.push('/settings')
-              setMenuOpen(false)
-            }}
-          >
-            <Settings className="mr-2 w-5 h-5" /> Settings
-          </Button>
-          <Button
-            className="w-full justify-start rounded-lg px-4 py-3 text-lg font-semibold"
-            onClick={() => {
-              router.push('/profile')
-              setMenuOpen(false)
-            }}
-          >
-            <User className="mr-2 w-5 h-5" /> Profile
-          </Button>
-          <Button
-            className="w-full justify-start rounded-lg px-4 py-3 text-lg font-semibold"
-            onClick={() => {
-              router.push('/help')
-              setMenuOpen(false)
-            }}
-          >
-            <HelpCircle className="mr-2 w-5 h-5" /> Help
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
+    <DashboardLayout
+      menuOpen={menuOpen}
+      setMenuOpen={setMenuOpen}
+      onSettingsClick={() => { setMenuOpen(false); }}
+      onProfileClick={() => { setMenuOpen(false); }}
+      onHelpClick={() => { setMenuOpen(false); }}
+    >
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground">Drivers</h1>
-          <Button>Add Driver</Button>
+          <Button onClick={() => setShowAddForm(true)}>Add Driver</Button>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {drivers.map((driver) => (
+          {driversList.map((driver) => (
             <Card key={driver.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center gap-4">
                 <Avatar className="h-12 w-12">
@@ -196,8 +131,88 @@ export default function DriversPage() {
             </Card>
           ))}
         </div>
-        </div>
       </div>
-    </main>
+
+      {/* Add Driver Modal */}
+      {showAddForm && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setShowAddForm(false)} />
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-8 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-bold mb-6 text-gray-900">Add New Driver</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-500 font-semibold block mb-2">NAME</label>
+                <input
+                  className="border rounded px-3 py-2 w-full"
+                  placeholder="Enter driver name"
+                  value={formData.name}
+                  onChange={e => handleFormChange('name', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 font-semibold block mb-2">EMAIL</label>
+                <input
+                  className="border rounded px-3 py-2 w-full"
+                  placeholder="Enter email address"
+                  type="email"
+                  value={formData.email}
+                  onChange={e => handleFormChange('email', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 font-semibold block mb-2">PHONE</label>
+                <input
+                  className="border rounded px-3 py-2 w-full"
+                  placeholder="Enter phone number"
+                  value={formData.phone}
+                  onChange={e => handleFormChange('phone', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 font-semibold block mb-2">VEHICLE</label>
+                <input
+                  className="border rounded px-3 py-2 w-full"
+                  placeholder="Enter vehicle info (e.g., Van #101)"
+                  value={formData.vehicle}
+                  onChange={e => handleFormChange('vehicle', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 font-semibold block mb-2">STATUS</label>
+                <select
+                  className="border rounded px-3 py-2 w-full"
+                  value={formData.status}
+                  onChange={e => handleFormChange('status', e.target.value)}
+                >
+                  <option value="available">Available</option>
+                  <option value="on-route">On Route</option>
+                  <option value="off-duty">Off Duty</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-8">
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="flex-1 bg-gray-200 text-gray-900 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddDriver}
+                className="flex-1 bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 transition-colors font-medium"
+              >
+                Add Driver
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </DashboardLayout>
   )
 }
