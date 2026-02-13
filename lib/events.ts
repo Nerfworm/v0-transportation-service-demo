@@ -27,3 +27,4 @@ export const getWeekDates = (currentDate = new Date()) => {
   }
   return dates
 }
+
