@@ -24,78 +24,12 @@ interface ReviewRequest {
   status?: "pending" | "approved" | "rejected"
 }
 
-const sampleRequests: ReviewRequest[] = [
-  {
-    id: "r1",
-    firstName: "Alice",
-    lastName: "Green",
-    houseName: "Maple House",
-    email: "alice.green@email.com",
-    pickupAddress: "123 Main St, Downtown",
-    destinationAddress: "JFK International Airport, Terminal 4",
-    arrivalDate: "2025-11-23",
-    arrivalTime: "09:00",
-    comments: "Needs wheelchair assistance. Please notify driver in advance.",
-    status: "pending",
-  },
-  {
-    id: "r2",
-    firstName: "Bob",
-    lastName: "Lee",
-    houseName: "Oak House",
-    phone: "+1 (555) 234-5678",
-    pickupAddress: "Central Station, Platform 2",
-    destinationAddress: "Conference Center, 456 Business Rd",
-    arrivalDate: "2025-11-23",
-    arrivalTime: "11:30",
-    comments: "Large luggage. May need extra space.",
-    status: "pending",
-  },
-  {
-    id: "r3",
-    firstName: "Maria",
-    lastName: "Santos",
-    houseName: "Pine House",
-    email: "maria.santos@email.com",
-    phone: "+1 (555) 876-5432",
-    pickupAddress: "789 Elm St, Suburbia",
-    destinationAddress: "City Hospital, 101 Health Ave",
-    arrivalDate: "2025-11-24",
-    arrivalTime: "14:15",
-    comments: "Patient is non-ambulatory. Bring wheelchair ramp.",
-    status: "pending",
-  },
-  {
-    id: "r4",
-    firstName: "David",
-    lastName: "Nguyen",
-    houseName: "Cedar House",
-    pickupAddress: "University Dorms, 321 College Ln",
-    destinationAddress: "Library, 654 Knowledge Blvd",
-    arrivalDate: "2025-11-25",
-    arrivalTime: "08:45",
-    comments: "Early morning pickup requested.",
-    status: "pending",
-  },
-  {
-    id: "r5",
-    firstName: "Fatima",
-    lastName: "Ali",
-    houseName: "Birch House",
-    email: "fatima.ali@email.com",
-    pickupAddress: "Mall Entrance, 222 Shopping Pl",
-    destinationAddress: "Community Center, 333 Unity Dr",
-    arrivalDate: "2025-11-26",
-    arrivalTime: "16:00",
-    comments: "Assistance with bags needed.",
-    status: "pending",
-  },
-]
+
 
 export default function Page() {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [requests, setRequests] = useState<ReviewRequest[]>(sampleRequests)
+  const [requests, setRequests] = useState<ReviewRequest[]>([])
   const [selected, setSelected] = useState<ReviewRequest | null>(null)
 
   const approve = (id: string) => {
