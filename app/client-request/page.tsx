@@ -15,7 +15,7 @@ export default function ClientRequestPage() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    houseName: "",
+    houseId: "",
     email: "",
     phone: "",
     sourceAddress: "",
@@ -39,7 +39,7 @@ export default function ClientRequestPage() {
         body: JSON.stringify({
           firstName: formData.firstName,
           lastName: formData.lastName,
-          houseId: 7, // adjust if needed
+          houseId: formData.houseId,
           email: formData.email,
           phone: formData.phone,
           sourceAddress: formData.sourceAddress,
@@ -64,7 +64,7 @@ export default function ClientRequestPage() {
     setFormData({
       firstName: "",
       lastName: "",
-      houseName: "",
+      houseId: "",
       email: "",
       phone: "",
       sourceAddress: "",
@@ -122,16 +122,17 @@ export default function ClientRequestPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="houseName">House Name</Label>
+                <Label htmlFor="houseId">House ID</Label>
                 <Select
-                  value={formData.houseName}
-                  onValueChange={(value) => setFormData({ ...formData, houseName: value })}
+                  value={formData.houseId}
+                  onValueChange={(value) => setFormData({ ...formData, houseId: value })}
                 >
-                  <SelectTrigger id="houseName">
-                    <SelectValue placeholder="Select House Name" />
+                  <SelectTrigger id="houseId">
+                    <SelectValue placeholder="Select House ID" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Options will be populated from the database in the future */}
+                    <SelectItem value="7">7</SelectItem>
+                    <SelectItem value="8">8</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
