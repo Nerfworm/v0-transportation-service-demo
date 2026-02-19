@@ -30,7 +30,7 @@ export default function SettingsPage() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1>
 
-        <Tabs.Root defaultValue="general" orientation="vertical" className="w-full">
+        <Tabs.Root defaultValue="account" orientation="vertical" className="w-full">
           <Card className="hover:shadow-md transition-shadow">
             <div className="flex">
               <Tabs.List className="flex flex-col space-y-2 border-r border-border pr-4 w-40">
@@ -49,18 +49,18 @@ export default function SettingsPage() {
               </Tabs.List>
 
               <div className="flex-1 p-4">
-                <Tabs.Content value="general">
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Placeholder for general settings options such as notifications, theme, and account details.
-                    </p>
-                  </CardContent>
-                </Tabs.Content>
-
                 <Tabs.Content value="account">
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
                       Account-specific settings will appear here (e.g., change password, manage email).
+                    </p>
+                  </CardContent>
+                </Tabs.Content>
+
+                <Tabs.Content value="general">
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Placeholder for general settings options such as notifications, theme, and account details.
                     </p>
                   </CardContent>
                 </Tabs.Content>
