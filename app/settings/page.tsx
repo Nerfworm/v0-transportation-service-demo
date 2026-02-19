@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import DashboardLayout from "@/components/DashboardLayout"
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
+import * as Tabs from '@radix-ui/react-tabs'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -29,28 +30,44 @@ export default function SettingsPage() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Tabs.Root defaultValue="general" orientation="vertical" className="w-full">
           <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle>General</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Placeholder for general settings options such as notifications, theme, and account details.
-              </p>
-            </CardContent>
+            <div className="flex">
+              <Tabs.List className="flex flex-col space-y-2 border-r border-border pr-4 w-40">
+                <Tabs.Trigger
+                  value="account"
+                  className="text-sm font-medium text-foreground text-left px-3 py-2 hover:bg-accent rounded-md data-[state=active]:bg-card data-[state=active]:border-l-4 data-[state=active]:border-primary"
+                >
+                  Account
+                </Tabs.Trigger>
+                <Tabs.Trigger
+                  value="general"
+                  className="text-sm font-medium text-foreground text-left px-3 py-2 hover:bg-accent rounded-md data-[state=active]:bg-card data-[state=active]:border-l-4 data-[state=active]:border-primary"
+                >
+                  General
+                </Tabs.Trigger>
+              </Tabs.List>
+
+              <div className="flex-1 p-4">
+                <Tabs.Content value="general">
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Placeholder for general settings options such as notifications, theme, and account details.
+                    </p>
+                  </CardContent>
+                </Tabs.Content>
+
+                <Tabs.Content value="account">
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Account-specific settings will appear here (e.g., change password, manage email).
+                    </p>
+                  </CardContent>
+                </Tabs.Content>
+              </div>
+            </div>
           </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Account-specific settings will appear here (e.g., change password, manage email).
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        </Tabs.Root>
       </div>
     </DashboardLayout>
   )
