@@ -9,46 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import DashboardLayout from '@/components/DashboardLayout'
 
-const drivers = [
-  {
-    id: "1",
-    name: "John Smith",
-    email: "john.smith@transport.com",
-    phone: "+1 (555) 123-4567",
-    status: "available",
-    vehicle: "Van #101",
-  },
-  {
-    id: "2",
-    name: "Jane Doe",
-    email: "jane.doe@transport.com",
-    phone: "+1 (555) 234-5678",
-    status: "on-route",
-    vehicle: "Bus #202",
-  },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    email: "mike.johnson@transport.com",
-    phone: "+1 (555) 345-6789",
-    status: "off-duty",
-    vehicle: "Van #103",
-  },
-  {
-    id: "4",
-    name: "Sarah Williams",
-    email: "sarah.williams@transport.com",
-    phone: "+1 (555) 456-7890",
-    status: "available",
-    vehicle: "Bus #204",
-  },
-]
+
 
 
 export default function DriversPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [driversList, setDriversList] = useState(drivers)
+  const [driversList, setDriversList] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     email: '',

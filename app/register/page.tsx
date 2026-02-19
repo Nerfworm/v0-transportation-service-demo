@@ -1,3 +1,4 @@
+// ...existing code...
 "use client"
 
 import type React from "react"
@@ -17,22 +18,50 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     email: "",
-    mobileNumber: "",
+    phone: "",
     role: "",
     username: "",
     password: "",
     confirmPassword: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!")
-      return
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/register-account",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Registration failed");
+        setLoading(false);
+        return;
+      }
+
+      // Redirect to login after successful registration
+      router.push("/login");
+    } catch (err: any) {
+      setError(err.message || "Unexpected error");
     }
-    console.log("Registration submitted:", formData)
-    router.push("/dashboard/Home")
-  }
+
+    setLoading(false);
+  };
+
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
@@ -55,6 +84,7 @@ export default function RegisterPage() {
 
           <h2 className="text-lg font-semibold text-foreground mb-6">Registration</h2>
 
+          {error && <div className="text-red-500 mb-4">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -97,8 +127,8 @@ export default function RegisterPage() {
                 id="mobileNumber"
                 type="tel"
                 placeholder="Mobile number"
-                value={formData.mobileNumber}
-                onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 required
               />
             </div>
@@ -153,7 +183,7 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full mt-6">
-              Create new account
+              {loading ? "Creating..." : "Create new account"}
             </Button>
           </form>
         </div>

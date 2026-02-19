@@ -15,21 +15,70 @@ export default function ClientRequestPage() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    houseName: "",
+    houseId: "",
     email: "",
     phone: "",
     sourceAddress: "",
     destinationAddress: "",
     arrivalTime: "",
-    amPm: "AM",
+    // amPm removed
     comments: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Form submitted:", formData)
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  try {
+    const response = await fetch(
+      "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/submit-request",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          houseId: formData.houseId,
+          email: formData.email,
+          phone: formData.phone,
+          sourceAddress: formData.sourceAddress,
+          destinationAddress: formData.destinationAddress,
+          pickupTime: formData.arrivalTime,
+          dropoffTime: "", // optional, set if you have it
+          comments: formData.comments,
+        }),
+        credentials: "include", // important if function sets cookies
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      alert(data.error || "Request submission failed")
+      return
+    }
+
     alert("Request submitted successfully!")
+    // optionally clear the form
+    setFormData({
+      firstName: "",
+      lastName: "",
+      houseId: "",
+      email: "",
+      phone: "",
+      sourceAddress: "",
+      destinationAddress: "",
+      arrivalTime: "",
+      // amPm removed
+      comments: "",
+    })
+  } catch (err: any) {
+    console.error(err)
+    alert("Unexpected error: " + (err.message || err))
   }
+}
+
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
@@ -73,13 +122,19 @@ export default function ClientRequestPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="houseName">House Name</Label>
-                <Input
-                  id="houseName"
-                  placeholder="House Name"
-                  value={formData.houseName}
-                  onChange={(e) => setFormData({ ...formData, houseName: e.target.value })}
-                />
+                <Label htmlFor="houseId">House ID</Label>
+                <Select
+                  value={formData.houseId}
+                  onValueChange={(value) => setFormData({ ...formData, houseId: value })}
+                >
+                  <SelectTrigger id="houseId">
+                    <SelectValue placeholder="Select House ID" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7</SelectItem>
+                    <SelectItem value="8">8</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -146,18 +201,7 @@ export default function ClientRequestPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="amPm">AM/PM</Label>
-                <Select value={formData.amPm} onValueChange={(value) => setFormData({ ...formData, amPm: value })}>
-                  <SelectTrigger id="amPm">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AM">AM</SelectItem>
-                    <SelectItem value="PM">PM</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* AM/PM dropdown removed */}
             </div>
 
             <div className="space-y-2">

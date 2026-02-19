@@ -16,8 +16,7 @@ const HOURS = [
 
 
 
-import { sampleEvents, getWeekDates } from '@/lib/events'
-import type { CalendarEvent } from '@/lib/events'
+import { getWeekDates } from '@/lib/events'
 
 
 // Types and sample requests copied from review/page.tsx
@@ -36,73 +35,7 @@ interface ReviewRequest {
   status?: "pending" | "approved" | "rejected"
 }
 
-const sampleRequests: ReviewRequest[] = [
-  {
-    id: "r1",
-    firstName: "Alice",
-    lastName: "Green",
-    houseName: "Maple House",
-    email: "alice.green@email.com",
-    pickupAddress: "123 Main St, Downtown",
-    destinationAddress: "JFK International Airport, Terminal 4",
-    arrivalDate: "2025-11-23",
-    arrivalTime: "09:00",
-    comments: "Needs wheelchair assistance. Please notify driver in advance.",
-    status: "pending",
-  },
-  {
-    id: "r2",
-    firstName: "Bob",
-    lastName: "Lee",
-    houseName: "Oak House",
-    phone: "+1 (555) 234-5678",
-    pickupAddress: "Central Station, Platform 2",
-    destinationAddress: "Conference Center, 456 Business Rd",
-    arrivalDate: "2025-11-23",
-    arrivalTime: "11:30",
-    comments: "Large luggage. May need extra space.",
-    status: "pending",
-  },
-  {
-    id: "r3",
-    firstName: "Maria",
-    lastName: "Santos",
-    houseName: "Pine House",
-    email: "maria.santos@email.com",
-    phone: "+1 (555) 876-5432",
-    pickupAddress: "789 Elm St, Suburbia",
-    destinationAddress: "City Hospital, 101 Health Ave",
-    arrivalDate: "2025-11-24",
-    arrivalTime: "14:15",
-    comments: "Patient is non-ambulatory. Bring wheelchair ramp.",
-    status: "pending",
-  },
-  {
-    id: "r4",
-    firstName: "David",
-    lastName: "Nguyen",
-    houseName: "Cedar House",
-    pickupAddress: "University Dorms, 321 College Ln",
-    destinationAddress: "Library, 654 Knowledge Blvd",
-    arrivalDate: "2025-11-25",
-    arrivalTime: "08:45",
-    comments: "Early morning pickup requested.",
-    status: "pending",
-  },
-  {
-    id: "r5",
-    firstName: "Fatima",
-    lastName: "Ali",
-    houseName: "Birch House",
-    email: "fatima.ali@email.com",
-    pickupAddress: "Mall Entrance, 222 Shopping Pl",
-    destinationAddress: "Community Center, 333 Unity Dr",
-    arrivalDate: "2025-11-26",
-    arrivalTime: "16:00",
-    comments: "Assistance with bags needed.",
-    status: "pending",
-  },
-]
+
 
 export default function CalendarPage() {
   const router = useRouter()
@@ -110,7 +43,7 @@ export default function CalendarPage() {
   // ...existing code...
   const [filterDriver, setFilterDriver] = useState("all")
   const [menuOpen, setMenuOpen] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState(null)
 
   const handleLogout = () => {
     router.push("/")
@@ -161,9 +94,9 @@ export default function CalendarPage() {
       }}
     >
 
-      <div className="flex flex-row w-full h-full min-h-[80vh]">
+      <div className="flex flex-row w-full h-full overflow-hidden">
         {/* Calendar Main Area */}
-        <div className="flex-1 max-w-[70vw] min-w-[700px] bg-card rounded-xl shadow-lg overflow-hidden mr-8 h-[1160px] flex flex-col">
+        <div className="flex-1 max-w-[70vw] min-w-[700px] bg-card rounded-xl shadow-lg overflow-hidden mr-8 h-[1150px] flex flex-col">
           <div className="p-4 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-wrap">
               <Button variant="outline" onClick={goToToday}>
@@ -224,22 +157,13 @@ export default function CalendarPage() {
                     {hour}
                   </div>
                   {weekDates.map((_, dayIndex) => {
-                    const event = sampleEvents.find((e) => e.day === dayIndex && e.hour === hourIndex)
-                    const isFiltered = filterDriver === "all" || (event && event.driver?.toLowerCase() === filterDriver.toLowerCase())
+                    // No events, just render empty cell
                     return (
                       <div
                         key={dayIndex}
                         className="p-1 min-h-16 border-r border-border last:border-r-0 hover:bg-muted/50 cursor-pointer transition-colors"
                       >
-                        {event && isFiltered && (
-                          <div 
-                            className="bg-accent text-accent-foreground text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => setSelectedEvent(event)}
-                          >
-                            <div className="font-medium">{event.title}</div>
-                            {event.driver && <div className="text-muted-foreground">{event.driver}</div>}
-                          </div>
-                        )}
+                        {/* No event data */}
                       </div>
                     )
                   })}
@@ -249,36 +173,9 @@ export default function CalendarPage() {
           </div>
         </div>
         {/* Expanded Sidebar with Requests Under Review */}
-        <div className="flex-1 min-w-[520px] max-w-[800px] bg-white rounded-xl shadow-lg flex flex-col p-6 overflow-y-auto">
+        <div className="w-[720px] max-w-[800px] bg-white rounded-xl shadow-lg flex flex-col p-6 overflow-y-auto sticky top-0 h-[1150px]">
           <h2 className="text-2xl font-bold mb-6">Requests Under Review</h2>
-          {/* Requests List */}
-          {sampleRequests && sampleRequests.length > 0 ? (
-            <div className="flex flex-col gap-4">
-              {sampleRequests.map((r) => (
-                <div key={r.id} className="border border-border rounded-lg p-4 bg-card shadow-sm flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
-                      {(r.firstName?.[0] || '').toUpperCase()}{(r.lastName?.[0] || '').toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-lg">{r.firstName} {r.lastName}</div>
-                      <div className="text-xs text-muted-foreground">{r.houseName}</div>
-                    </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${r.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : r.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{r.status}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1"><span className="font-medium text-foreground">Pickup:</span> {r.pickupAddress}</div>
-                  <div className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Destination:</span> {r.destinationAddress}</div>
-                  <div className="flex gap-4 text-xs mt-2">
-                    <div><span className="font-medium text-foreground">Date:</span> {r.arrivalDate}</div>
-                    <div><span className="font-medium text-foreground">Time:</span> {r.arrivalTime}</div>
-                  </div>
-                  {r.comments && <div className="text-xs text-muted-foreground mt-1 italic">{r.comments}</div>}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-muted-foreground">No requests under review.</div>
-          )}
+          <div className="text-muted-foreground">No requests under review.</div>
         </div>
       </div>
 

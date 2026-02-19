@@ -17,12 +17,43 @@ export default function StaffLoginPage() {
     password: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Login attempted:", formData)
-    router.push("/dashboard/Home")
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError(null);
+  setLoading(true);
+
+  try {
+    const res = await fetch(
+      "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify(formData),
+        credentials: "include" 
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Login failed");
+      setLoading(false);
+      return;
+    }
+
+    router.push("/dashboard/Home");
+  } catch (err: any) {
+    setError(err.message || "Unexpected error");
   }
 
+  setLoading(false);
+};
   return (
     <main className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
       <div className="w-full max-w-md">
@@ -69,6 +100,7 @@ export default function StaffLoginPage() {
             <Button type="submit" className="w-full py-2">
               Login
             </Button>
+            {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
           </form>
 
           <div className="mt-6 text-center">
