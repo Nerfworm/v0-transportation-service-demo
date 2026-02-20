@@ -27,10 +27,19 @@ export default function RegisterPage() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passwordMatchError, setPasswordMatchError] = useState("");
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setPasswordMatchError("");
     setLoading(true);
+
+    // Check if passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordMatchError("Passwords don't match");
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch(
@@ -53,8 +62,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // Redirect to login after successful registration
-      router.push("/login");
+      // Redirect to staff-login after successful registration
+      router.push("/staff-login");
     } catch (err: any) {
       setError(err.message || "Unexpected error");
     }
@@ -128,9 +137,19 @@ export default function RegisterPage() {
                 type="tel"
                 placeholder="Mobile number"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                maxLength={10}
+                pattern="[0-9]*"
+                inputMode="numeric"
+                onChange={(e) => {
+                  // Only allow numbers and limit to 10 digits
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setFormData({ ...formData, phone: value });
+                }}
                 required
               />
+              {formData.phone.length === 10 ? null : (
+                <div className="text-xs text-gray-500">Enter a 10-digit phone number</div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -177,9 +196,15 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, confirmPassword: e.target.value });
+                  setPasswordMatchError("");
+                }}
                 required
               />
+              {passwordMatchError && (
+                <div className="text-red-500 text-sm mt-1">{passwordMatchError}</div>
+              )}
             </div>
 
             <Button type="submit" className="w-full mt-6">
