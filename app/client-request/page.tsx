@@ -20,8 +20,8 @@ export default function ClientRequestPage() {
     phone: "",
     sourceAddress: "",
     destinationAddress: "",
-    arrivalTime: "",
-    // amPm removed
+    pickupTime: "",
+    dropoffTime: "",
     comments: "",
   })
 
@@ -44,8 +44,8 @@ export default function ClientRequestPage() {
           phone: formData.phone,
           sourceAddress: formData.sourceAddress,
           destinationAddress: formData.destinationAddress,
-          pickupTime: formData.arrivalTime,
-          dropoffTime: "", // optional, set if you have it
+          pickupTime: formData.pickupTime,
+          dropoffTime: formData.dropoffTime,
           comments: formData.comments,
         }),
         credentials: "include", // important if function sets cookies
@@ -69,8 +69,8 @@ export default function ClientRequestPage() {
       phone: "",
       sourceAddress: "",
       destinationAddress: "",
-      arrivalTime: "",
-      // amPm removed
+      pickupTime: "",
+      dropoffTime: "",
       comments: "",
     })
   } catch (err: any) {
@@ -96,7 +96,7 @@ export default function ClientRequestPage() {
             <div className="bg-primary p-2 rounded-lg">
               <Bus className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Client Request Forum</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Client Request Form</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -191,17 +191,27 @@ export default function ClientRequestPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-2 col-span-1">
-                <Label htmlFor="arrivalTime">Arrival Time</Label>
+                <Label htmlFor="pickupTime">Pickup Time</Label>
                 <Input
-                  id="arrivalTime"
+                  id="pickupTime"
                   type="time"
-                  placeholder="Arrival Time"
-                  value={formData.arrivalTime}
-                  onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
+                  placeholder="Pickup Time"
+                  value={formData.pickupTime}
+                  onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })}
                   required
                 />
               </div>
-              {/* AM/PM dropdown removed */}
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="dropoffTime">Dropoff Time</Label>
+                <Input
+                  id="dropoffTime"
+                  type="time"
+                  placeholder="Dropoff Time"
+                  value={formData.dropoffTime}
+                  onChange={(e) => setFormData({ ...formData, dropoffTime: e.target.value })}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
