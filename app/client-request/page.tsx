@@ -20,14 +20,44 @@ export default function ClientRequestPage() {
     phone: "",
     sourceAddress: "",
     destinationAddress: "",
-    arrivalTime: "",
-    // amPm removed
+    pickupTime: "",
+    dropoffTime: "",
     comments: "",
   })
+
+  // Phone formatting function
+  function formatPhoneNumber(value: string) {
+    // Remove all non-digit characters
+    let digits = value.replace(/\D/g, "");
+    // Remove leading 1 if user types it
+    if (digits.startsWith("1")) digits = digits.slice(1);
+    // Limit to 10 digits
+    digits = digits.slice(0, 10);
+    let formatted = "+1 ";
+    if (digits.length > 0) {
+      formatted += "(" + digits.slice(0, 3);
+    }
+    if (digits.length >= 4) {
+      formatted += ") " + digits.slice(3, 6);
+    }
+    if (digits.length >= 7) {
+      formatted += "-" + digits.slice(6, 10);
+    }
+    return formatted.trim();
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setFormData({ ...formData, phone: formatted });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
   try {
+    // Ensure phone is submitted as +1XXXXXXXXXX (E.164)
+    const digits = formData.phone.replace(/\D/g, "").slice(-10);
+    const phoneE164 = digits.length === 10 ? `+1${digits}` : formData.phone;
+    const submitData = { ...formData, phone: phoneE164 };
     const response = await fetch(
       "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/submit-request",
       {
@@ -36,18 +66,7 @@ export default function ClientRequestPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          houseId: formData.houseId,
-          email: formData.email,
-          phone: formData.phone,
-          sourceAddress: formData.sourceAddress,
-          destinationAddress: formData.destinationAddress,
-          pickupTime: formData.arrivalTime,
-          dropoffTime: "", // optional, set if you have it
-          comments: formData.comments,
-        }),
+        body: JSON.stringify(submitData),
         credentials: "include", // important if function sets cookies
       }
     )
@@ -69,8 +88,8 @@ export default function ClientRequestPage() {
       phone: "",
       sourceAddress: "",
       destinationAddress: "",
-      arrivalTime: "",
-      // amPm removed
+      pickupTime: "",
+      dropoffTime: "",
       comments: "",
     })
   } catch (err: any) {
@@ -96,7 +115,7 @@ export default function ClientRequestPage() {
             <div className="bg-primary p-2 rounded-lg">
               <Bus className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Client Request Forum</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Client Request Form</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -156,7 +175,8 @@ export default function ClientRequestPage() {
                   type="tel"
                   placeholder="Phone # (optional)"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={handlePhoneChange}
+                  maxLength={17}
                 />
               </div>
             </div>
@@ -191,17 +211,27 @@ export default function ClientRequestPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-2 col-span-1">
-                <Label htmlFor="arrivalTime">Arrival Time</Label>
+                <Label htmlFor="pickupTime">Pickup Time</Label>
                 <Input
-                  id="arrivalTime"
+                  id="pickupTime"
                   type="time"
-                  placeholder="Arrival Time"
-                  value={formData.arrivalTime}
-                  onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
+                  placeholder="Pickup Time"
+                  value={formData.pickupTime}
+                  onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })}
                   required
                 />
               </div>
-              {/* AM/PM dropdown removed */}
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="dropoffTime">Dropoff Time</Label>
+                <Input
+                  id="dropoffTime"
+                  type="time"
+                  placeholder="Dropoff Time"
+                  value={formData.dropoffTime}
+                  onChange={(e) => setFormData({ ...formData, dropoffTime: e.target.value })}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
