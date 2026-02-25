@@ -19,20 +19,17 @@ const HOURS = [
 import { getWeekDates } from '@/lib/events'
 
 
-// Types and sample requests copied from review/page.tsx
-interface ReviewRequest {
-  id: string
-  firstName: string
-  lastName: string
-  houseName: string
-  email?: string
-  phone?: string
-  pickupAddress: string
-  destinationAddress: string
-  arrivalDate: string
-  arrivalTime: string
-  comments?: string
-  status?: "pending" | "approved" | "rejected"
+
+// Event type for calendar
+interface CalendarEvent {
+  id: string;
+  title: string;
+  driver?: string;
+  description?: string;
+  location?: string;
+  passengers?: string;
+  notes?: string;
+  hour: number;
 }
 
 
@@ -43,7 +40,7 @@ export default function CalendarPage() {
   // ...existing code...
   const [filterDriver, setFilterDriver] = useState("all")
   const [menuOpen, setMenuOpen] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   const handleLogout = () => {
     router.push("/")

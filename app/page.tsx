@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Bus } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import { Bus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function MainSelectionPage() {
   return (
@@ -25,7 +25,7 @@ export default function MainSelectionPage() {
           </Link>
           <Link href="/staff-login" className="block">
             <Button
-              variant="primary"
+              variant="default"
               className="w-full py-6 text-lg font-medium bg-blue-600 hover:bg-blue-700 text-white transition-all border-2 border-blue-700"
             >
               Staff Sign In
@@ -34,5 +34,6 @@ export default function MainSelectionPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
+

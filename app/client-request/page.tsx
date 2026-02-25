@@ -25,9 +25,39 @@ export default function ClientRequestPage() {
     comments: "",
   })
 
+  // Phone formatting function
+  function formatPhoneNumber(value: string) {
+    // Remove all non-digit characters
+    let digits = value.replace(/\D/g, "");
+    // Remove leading 1 if user types it
+    if (digits.startsWith("1")) digits = digits.slice(1);
+    // Limit to 10 digits
+    digits = digits.slice(0, 10);
+    let formatted = "+1 ";
+    if (digits.length > 0) {
+      formatted += "(" + digits.slice(0, 3);
+    }
+    if (digits.length >= 4) {
+      formatted += ") " + digits.slice(3, 6);
+    }
+    if (digits.length >= 7) {
+      formatted += "-" + digits.slice(6, 10);
+    }
+    return formatted.trim();
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setFormData({ ...formData, phone: formatted });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
   try {
+    // Ensure phone is submitted as +1XXXXXXXXXX (E.164)
+    const digits = formData.phone.replace(/\D/g, "").slice(-10);
+    const phoneE164 = digits.length === 10 ? `+1${digits}` : formData.phone;
+    const submitData = { ...formData, phone: phoneE164 };
     const response = await fetch(
       "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/submit-request",
       {
@@ -36,18 +66,7 @@ export default function ClientRequestPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          houseId: formData.houseId,
-          email: formData.email,
-          phone: formData.phone,
-          sourceAddress: formData.sourceAddress,
-          destinationAddress: formData.destinationAddress,
-          pickupTime: formData.pickupTime,
-          dropoffTime: formData.dropoffTime,
-          comments: formData.comments,
-        }),
+        body: JSON.stringify(submitData),
         credentials: "include", // important if function sets cookies
       }
     )
@@ -156,7 +175,8 @@ export default function ClientRequestPage() {
                   type="tel"
                   placeholder="Phone # (optional)"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={handlePhoneChange}
+                  maxLength={17}
                 />
               </div>
             </div>

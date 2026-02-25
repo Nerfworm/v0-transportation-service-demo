@@ -28,11 +28,58 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordMatchError, setPasswordMatchError] = useState("");
+  // Removed passwordRequirementsError state
+
+  function validatePassword(password: string) {
+    // At least 8 chars, 1 upper, 1 lower, 1 digit, 1 symbol
+    const minLength = /.{8,}/;
+    const upper = /[A-Z]/;
+    const lower = /[a-z]/;
+    const digit = /[0-9]/;
+    const symbol = /[^A-Za-z0-9]/;
+    return (
+      minLength.test(password) &&
+      upper.test(password) &&
+      lower.test(password) &&
+      digit.test(password) &&
+      symbol.test(password)
+    );
+  }
+  // Phone formatting function
+  function formatPhoneNumber(value: string) {
+    let digits = value.replace(/\D/g, "");
+    if (digits.startsWith("1")) digits = digits.slice(1);
+    digits = digits.slice(0, 10);
+    let formatted = "+1 ";
+    if (digits.length > 0) {
+      formatted += "(" + digits.slice(0, 3);
+    }
+    if (digits.length >= 4) {
+      formatted += ") " + digits.slice(3, 6);
+    }
+    if (digits.length >= 7) {
+      formatted += "-" + digits.slice(6, 10);
+    }
+    return formatted.trim();
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setFormData({ ...formData, phone: formatted });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setPasswordMatchError("");
+
     setLoading(true);
+
+    // Password requirements
+    if (!validatePassword(formData.password)) {
+      setLoading(false);
+      return;
+    }
 
     // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -42,6 +89,10 @@ export default function RegisterPage() {
     }
 
     try {
+      // Ensure phone is submitted as +1XXXXXXXXXX (E.164)
+      const digits = formData.phone.replace(/\D/g, "").slice(-10);
+      const phoneE164 = digits.length === 10 ? `+1${digits}` : formData.phone;
+      const submitData = { ...formData, phone: phoneE164 };
       const res = await fetch(
         "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/register-account",
         {
@@ -50,7 +101,7 @@ export default function RegisterPage() {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(submitData),
         }
       );
 
@@ -137,17 +188,11 @@ export default function RegisterPage() {
                 type="tel"
                 placeholder="Mobile number"
                 value={formData.phone}
-                maxLength={10}
-                pattern="[0-9]*"
-                inputMode="numeric"
-                onChange={(e) => {
-                  // Only allow numbers and limit to 10 digits
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                  setFormData({ ...formData, phone: value });
-                }}
+                onChange={handlePhoneChange}
+                maxLength={17}
                 required
               />
-              {formData.phone.length === 10 ? null : (
+              {formData.phone.replace(/\D/g, '').length === 10 ? null : (
                 <div className="text-xs text-gray-500">Enter a 10-digit phone number</div>
               )}
             </div>
@@ -177,6 +222,7 @@ export default function RegisterPage() {
               />
             </div>
 
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -187,6 +233,11 @@ export default function RegisterPage() {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
               />
+              {!validatePassword(formData.password) && formData.password.length > 0 && (
+                <div className="text-xs text-red-500 mt-1">
+                  Password must be at least 8 characters, include upper and lower case letters, a digit, and a symbol.
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
