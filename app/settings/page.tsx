@@ -14,19 +14,13 @@ export default function SettingsPage() {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [newEmail, setNewEmail] = useState("")
-  const [emailSubmitted, setEmailSubmitted] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
-  const [passwordSubmitted, setPasswordSubmitted] = useState(false)
   const [phone, setPhone] = useState("")
-  const [phoneSubmitted, setPhoneSubmitted] = useState(false)
   const [username, setUsername] = useState("")
-  const [usernameSubmitted, setUsernameSubmitted] = useState(false)
   const [firstNameInput, setFirstNameInput] = useState("")
   const [lastNameInput, setLastNameInput] = useState("")
-  const [nameSubmitted, setNameSubmitted] = useState(false)
   const [requestedRole, setRequestedRole] = useState("")
-  const [roleSubmitted, setRoleSubmitted] = useState(false)
 
   return (
     <DashboardLayout
@@ -76,47 +70,48 @@ export default function SettingsPage() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
-                        setNameSubmitted(true);
                       }}
                       className="space-y-4"
                     >
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstNameChange">First name</Label>
-                          <Input
-                            id="firstNameChange"
-                            placeholder="Enter first name"
-                            value={firstNameInput}
-                            onChange={(e) => setFirstNameInput(e.target.value)}
-                            className="w-[40%]"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastNameChange">Last name</Label>
-                          <Input
-                            id="lastNameChange"
-                            placeholder="Enter last name"
-                            value={lastNameInput}
-                            onChange={(e) => setLastNameInput(e.target.value)}
-                            className="w-[40%]"
-                          />
-                        </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="firstNameChange">First name</Label>
+                        <Input
+                          id="firstNameChange"
+                          placeholder="Enter first name"
+                          value={firstNameInput}
+                          onChange={(e) => setFirstNameInput(e.target.value)}
+                          className="w-[40%]"
+                        />
                       </div>
                       <div className="flex items-center">
                         <Button type="submit" className="mt-2">
                           Submit
                         </Button>
-                        <Button
-                          type="button"
-                          className={`mt-2 ml-2 bg-gray-500 text-white ${
-                            nameSubmitted
-                              ? "opacity-100"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
-                          disabled={!nameSubmitted}
-                          onClick={() => setNameSubmitted(false)}
-                        >
-                          Confirm
+                      </div>
+                    </form>
+
+                    {/* divider */}
+                    <div className="border-t border-border my-6" />
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                      }}
+                      className="space-y-4"
+                    >
+                      <div className="space-y-2">
+                        <Label htmlFor="lastNameChange">Last name</Label>
+                        <Input
+                          id="lastNameChange"
+                          placeholder="Enter last name"
+                          value={lastNameInput}
+                          onChange={(e) => setLastNameInput(e.target.value)}
+                          className="w-[40%]"
+                        />
+                      </div>
+                      <div className="flex items-center">
+                        <Button type="submit" className="mt-2">
+                          Submit
                         </Button>
                       </div>
                     </form>
@@ -128,7 +123,6 @@ export default function SettingsPage() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
-                        setUsernameSubmitted(true);
                       }}
                       className="space-y-4"
                     >
@@ -146,18 +140,6 @@ export default function SettingsPage() {
                         <Button type="submit" className="mt-2">
                           Submit
                         </Button>
-                        <Button
-                          type="button"
-                          className={`mt-2 ml-2 bg-gray-500 text-white ${
-                            usernameSubmitted
-                              ? "opacity-100"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
-                          disabled={!usernameSubmitted}
-                          onClick={() => setUsernameSubmitted(false)}
-                        >
-                          Confirm
-                        </Button>
                       </div>
                     </form>
 
@@ -168,7 +150,6 @@ export default function SettingsPage() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault()
-                        setEmailSubmitted(true)
                       }}
                       className="space-y-4"
                     >
@@ -187,20 +168,6 @@ export default function SettingsPage() {
                         <Button type="submit" className="mt-2">
                           Submit
                         </Button>
-                        <Button
-                          type="button"
-                          className={`mt-2 ml-2 bg-gray-500 text-white ${
-                            emailSubmitted
-                              ? "opacity-100"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
-                          disabled={!emailSubmitted}
-                          onClick={() => {
-                            setEmailSubmitted(false);
-                          }}
-                        >
-                          Confirm
-                        </Button>
                       </div>
                     </form>
 
@@ -211,7 +178,6 @@ export default function SettingsPage() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
-                        setPhoneSubmitted(true);
                       }}
                       className="space-y-4"
                     >
@@ -230,18 +196,6 @@ export default function SettingsPage() {
                         <Button type="submit" className="mt-2">
                           Submit
                         </Button>
-                        <Button
-                          type="button"
-                          className={`mt-2 ml-2 bg-gray-500 text-white ${
-                            phoneSubmitted
-                              ? "opacity-100"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
-                          disabled={!phoneSubmitted}
-                          onClick={() => setPhoneSubmitted(false)}
-                        >
-                          Confirm
-                        </Button>
                       </div>
                     </form>
 
@@ -252,7 +206,6 @@ export default function SettingsPage() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
-                        setPasswordSubmitted(true);
                       }}
                       className="space-y-4 mt-6"
                     >
@@ -282,20 +235,6 @@ export default function SettingsPage() {
                         <Button type="submit" className="mt-2">
                           Submit
                         </Button>
-                        <Button
-                          type="button"
-                          className={`mt-2 ml-2 bg-gray-500 text-white ${
-                            passwordSubmitted
-                              ? "opacity-100"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
-                          disabled={!passwordSubmitted}
-                          onClick={() => {
-                            setPasswordSubmitted(false);
-                          }}
-                        >
-                          Confirm
-                        </Button>
                       </div>
                     </form>
 
@@ -306,7 +245,6 @@ export default function SettingsPage() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
-                        setRoleSubmitted(true);
                       }}
                       className="space-y-4"
                     >
@@ -329,18 +267,6 @@ export default function SettingsPage() {
                       <div className="flex items-center">
                         <Button type="submit" className="mt-2">
                           Submit
-                        </Button>
-                        <Button
-                          type="button"
-                          className={`mt-2 ml-2 bg-gray-500 text-white ${
-                            roleSubmitted
-                              ? "opacity-100"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
-                          disabled={!roleSubmitted}
-                          onClick={() => setRoleSubmitted(false)}
-                        >
-                          Confirm
                         </Button>
                       </div>
                     </form>
