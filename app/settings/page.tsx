@@ -3,24 +3,66 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import DashboardLayout from "@/components/DashboardLayout"
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import * as Tabs from '@radix-ui/react-tabs'
 
+type AccountInfo = {
+  firstName: string
+  lastName: string
+  username: string
+  email: string
+  phone: string
+  newPassword: string
+  confirmNewPassword: string
+  requestedRole: string
+}
+
 export default function SettingsPage() {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [newEmail, setNewEmail] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmNewPassword, setConfirmNewPassword] = useState("")
-  const [phone, setPhone] = useState("")
-  const [username, setUsername] = useState("")
-  const [firstNameInput, setFirstNameInput] = useState("")
-  const [lastNameInput, setLastNameInput] = useState("")
-  const [requestedRole, setRequestedRole] = useState("")
+  const [accountInfo, setAccountInfo] = useState<AccountInfo>({
+    firstName: "Alex",
+    lastName: "Morgan",
+    username: "amorgan",
+    email: "alex.morgan@example.com",
+    phone: "+1 (555) 123-4567",
+    newPassword: "********",
+    confirmNewPassword: "********",
+    requestedRole: "coordinator",
+  })
+  const [editableFields, setEditableFields] = useState<Partial<Record<keyof AccountInfo, boolean>>>({})
+  const [saveMessage, setSaveMessage] = useState("")
+
+  const accountFields: Array<{ key: keyof AccountInfo; label: string; type?: string }> = [
+    { key: "firstName", label: "First name" },
+    { key: "lastName", label: "Last name" },
+    { key: "username", label: "Username" },
+    { key: "email", label: "Email", type: "email" },
+    { key: "phone", label: "Phone", type: "tel" },
+    { key: "newPassword", label: "New password", type: "password" },
+    { key: "confirmNewPassword", label: "Confirm new password", type: "password" },
+    { key: "requestedRole", label: "Requested role" },
+  ]
+
+  const toggleFieldEdit = (field: keyof AccountInfo) => {
+    setEditableFields((prev) => ({ ...prev, [field]: !prev[field] }))
+    setSaveMessage("")
+  }
+
+  const handleFieldChange = (field: keyof AccountInfo, value: string) => {
+    setAccountInfo((prev) => ({ ...prev, [field]: value }))
+    setSaveMessage("")
+  }
+
+  const handleSaveAll = (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditableFields({})
+    setSaveMessage("Changes saved locally. You can wire backend save next.")
+  }
 
   return (
     <DashboardLayout
@@ -64,211 +106,70 @@ export default function SettingsPage() {
                 <Tabs.Content value="account">
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Update your account information below.
+                      Account information
                     </p>
-                    {/* name change section */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                      }}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="firstNameChange">First name</Label>
-                        <Input
-                          id="firstNameChange"
-                          placeholder="Enter first name"
-                          value={firstNameInput}
-                          onChange={(e) => setFirstNameInput(e.target.value)}
-                          className="w-[40%]"
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <Button type="submit" className="mt-2">
-                          Submit
+                    <form onSubmit={handleSaveAll} className="space-y-4">
+                      {accountFields.map((field, index) => (
+                        <div key={field.key}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="w-full max-w-md space-y-2">
+                              <Label htmlFor={field.key}>{field.label}</Label>
+
+                              {editableFields[field.key] ? (
+                                field.key === "requestedRole" ? (
+                                  <Select
+                                    value={accountInfo.requestedRole}
+                                    onValueChange={(value) => handleFieldChange("requestedRole", value)}
+                                  >
+                                    <SelectTrigger id="requestedRole">
+                                      <SelectValue placeholder="Select role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="driver">Driver</SelectItem>
+                                      <SelectItem value="coordinator">Coordinator</SelectItem>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    id={field.key}
+                                    type={field.type ?? "text"}
+                                    value={accountInfo[field.key]}
+                                    onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                                  />
+                                )
+                              ) : (
+                                <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/20 text-sm text-foreground">
+                                  {field.type === "password" ? "••••••••" : accountInfo[field.key]}
+                                </div>
+                              )}
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="mt-7"
+                              onClick={() => toggleFieldEdit(field.key)}
+                            >
+                              {editableFields[field.key] ? "Done" : "Edit"}
+                            </Button>
+                          </div>
+
+                          {index < accountFields.length - 1 && (
+                            <div className="border-t border-border my-4" />
+                          )}
+                        </div>
+                      ))}
+
+                      <div className="flex justify-center pt-2">
+                        <Button type="submit" className="px-8">
+                          Save Changes
                         </Button>
                       </div>
-                    </form>
 
-                    {/* divider */}
-                    <div className="border-t border-border my-6" />
-
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                      }}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="lastNameChange">Last name</Label>
-                        <Input
-                          id="lastNameChange"
-                          placeholder="Enter last name"
-                          value={lastNameInput}
-                          onChange={(e) => setLastNameInput(e.target.value)}
-                          className="w-[40%]"
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <Button type="submit" className="mt-2">
-                          Submit
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* divider */}
-                    <div className="border-t border-border my-6" />
-
-                    {/* username change section */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                      }}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="usernameChange">Change username</Label>
-                        <Input
-                          id="usernameChange"
-                          placeholder="Enter new username"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="w-[40%]"
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <Button type="submit" className="mt-2">
-                          Submit
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* divider */}
-                    <div className="border-t border-border my-6" />
-
-                    {/* email change section */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                      }}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="newEmail">Change email address</Label>
-                        <Input
-                          id="newEmail"
-                          type="email"
-                          placeholder="Enter new email"
-                          value={newEmail}
-                          onChange={(e) => setNewEmail(e.target.value)}
-                          className="w-[40%]"
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <Button type="submit" className="mt-2">
-                          Submit
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* divider */}
-                    <div className="border-t border-border my-6" />
-
-                    {/* phone change section */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                      }}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Change phone number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="Enter new phone number"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className="w-[40%]"
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <Button type="submit" className="mt-2">
-                          Submit
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* divider */}
-                    <div className="border-t border-border my-6" />
-
-                    {/* password change section */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                      }}
-                      className="space-y-4 mt-6"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">New password</Label>
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          placeholder="Enter new password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-[40%]"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmNewPassword">Confirm new password</Label>
-                        <Input
-                          id="confirmNewPassword"
-                          type="password"
-                          placeholder="Confirm password"
-                          value={confirmNewPassword}
-                          onChange={(e) => setConfirmNewPassword(e.target.value)}
-                          className="w-[40%]"
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <Button type="submit" className="mt-2">
-                          Submit
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* divider */}
-                    <div className="border-t border-border my-6" />
-
-                    {/* role request section */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                      }}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="roleRequest">Request role change</Label>
-                        <Select
-                          value={requestedRole}
-                          onValueChange={(val) => setRequestedRole(val)}
-                        >
-                          <SelectTrigger id="roleRequest" className="w-[40%]">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="driver">Driver</SelectItem>
-                            <SelectItem value="coordinator">Coordinator</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center">
-                        <Button type="submit" className="mt-2">
-                          Submit
-                        </Button>
-                      </div>
+                      {saveMessage && (
+                        <p className="text-sm text-muted-foreground text-center">{saveMessage}</p>
+                      )}
                     </form>
                   </CardContent>
                 </Tabs.Content>
