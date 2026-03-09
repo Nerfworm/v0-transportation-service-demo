@@ -10,24 +10,8 @@ import { sampleEvents, getWeekDates } from '@/lib/events'
 
 function HomePage() {
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <DashboardLayout
-      menuOpen={menuOpen}
-      setMenuOpen={setMenuOpen}
-      onSettingsClick={() => {
-        router.push('/settings');
-        setMenuOpen(false);
-      }}
-      onProfileClick={() => {
-        router.push('/profile');
-        setMenuOpen(false);
-      }}
-      onHelpClick={() => {
-        router.push('/help');
-        setMenuOpen(false);
-      }}
-    >
+    <DashboardLayout>
       <section className="flex-1 flex items-center justify-center px-50 py-12">
         <div className="bg-white rounded-3xl shadow-2xl w-full min-h-[700px] flex flex-col md:flex-row gap-8 p-8 md:p-12 justify-center items-stretch" style={{
           boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',

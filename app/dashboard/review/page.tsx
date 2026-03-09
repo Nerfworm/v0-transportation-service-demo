@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Users, Calendar, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
+import { fetchClientRequests } from "@/lib/edgeClient"
 
 interface ReviewRequest {
   id: string
@@ -28,9 +29,35 @@ interface ReviewRequest {
 
 export default function Page() {
   const router = useRouter()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [requests, setRequests] = useState<ReviewRequest[]>([])
   const [selected, setSelected] = useState<ReviewRequest | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Replace with your actual auth token retrieval logic
+    const token = localStorage.getItem("authToken") || "";
+    fetchClientRequests(token)
+      .then((res) => {
+        // Adjust mapping if needed to match ReviewRequest interface
+        setRequests(
+          (res.data || []).map((r: any, idx: number) => ({
+            id: r.id || idx.toString(),
+            firstName: r.first_name,
+            lastName: r.last_name,
+            houseName: r.house_id,
+            email: r.email,
+            phone: r.phone,
+            pickupAddress: r.source_address,
+            destinationAddress: r.destination_address,
+            arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+            arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+            comments: r.request_comment,
+            status: r.approved === "Unreviewed" ? "pending" : r.approved === true ? "approved" : "rejected",
+          }))
+        );
+      })
+      .catch((err) => setError(err.message));
+  }, []);
 
   const approve = (id: string) => {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "approved" } : r)))
@@ -61,22 +88,7 @@ export default function Page() {
   }
 
   return (
-    <DashboardLayout
-      menuOpen={menuOpen}
-      setMenuOpen={setMenuOpen}
-      onSettingsClick={() => {
-        router.push('/settings');
-        setMenuOpen(false);
-      }}
-      onProfileClick={() => {
-        router.push('/profile');
-        setMenuOpen(false);
-      }}
-      onHelpClick={() => {
-        router.push('/help');
-        setMenuOpen(false);
-      }}
-    >
+    <DashboardLayout>
       <div className="flex-1 overflow-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
