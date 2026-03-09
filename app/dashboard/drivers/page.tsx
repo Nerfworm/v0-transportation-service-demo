@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState } from "react"
 import { Bus, User, LogOut, Phone, Mail, Car } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -9,13 +10,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import DashboardLayout from '@/components/DashboardLayout'
 
+type Driver = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  vehicle: string;
+  status: string;
+};
+
 
 
 
 export default function DriversPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [driversList, setDriversList] = useState([])
+  const [driversList, setDriversList] = useState<Driver[]>([])
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -52,13 +62,7 @@ export default function DriversPage() {
   }
 
   return (
-    <DashboardLayout
-      menuOpen={menuOpen}
-      setMenuOpen={setMenuOpen}
-      onSettingsClick={() => { setMenuOpen(false); }}
-      onProfileClick={() => { setMenuOpen(false); }}
-      onHelpClick={() => { setMenuOpen(false); }}
-    >
+    <DashboardLayout>
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground">Drivers</h1>

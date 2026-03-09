@@ -74,22 +74,7 @@ export default function CalendarPage() {
   })
 
   return (
-    <DashboardLayout
-      menuOpen={menuOpen}
-      setMenuOpen={setMenuOpen}
-      onSettingsClick={() => {
-        router.push('/settings');
-        setMenuOpen(false);
-      }}
-      onProfileClick={() => {
-        router.push('/profile');
-        setMenuOpen(false);
-      }}
-      onHelpClick={() => {
-        router.push('/help');
-        setMenuOpen(false);
-      }}
-    >
+    <DashboardLayout>
 
       <div className="flex flex-row w-full h-full overflow-hidden">
         {/* Calendar Main Area */}
