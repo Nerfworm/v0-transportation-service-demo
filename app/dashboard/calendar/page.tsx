@@ -25,7 +25,6 @@ interface ReviewRequest {
       .then((res) => {
         setRequests(
           (res.data || [])
-            .filter((r: any) => r.approved === "Unreviewed")
             .map((r: any, idx: number) => ({
               id: r.id || idx.toString(),
               firstName: r.first_name,
@@ -38,8 +37,9 @@ interface ReviewRequest {
               arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
               arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
               comments: r.request_comment,
-              status: r.approved,
+              status: r.approved === "Unreviewed" ? "pending" : r.approved,
             }))
+            .filter((req: ReviewRequest) => req.status === "pending")
         );
       })
       .catch((err) => {
