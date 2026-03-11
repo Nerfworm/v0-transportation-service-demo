@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Users, Calendar, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
 import { fetchGetRequests } from "@/lib/edgeClient"
-import { supabase } from "@/lib/supabaseClient"
+
 
 interface ReviewRequest {
   id: string
@@ -35,35 +35,32 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchRequestsWithToken() {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session || !session.access_token) {
-        setError("You must be logged in to view requests.");
-        return;
-      }
-      const token = session.access_token;
-      fetchGetRequests(token)
-        .then((res) => {
-          setRequests(
-            (res.data || []).map((r: any, idx: number) => ({
-              id: r.id || idx.toString(),
-              firstName: r.first_name,
-              lastName: r.last_name,
-              houseName: r.house_id,
-              email: r.email,
-              phone: r.phone,
-              pickupAddress: r.source_address,
-              destinationAddress: r.destination_address,
-              arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
-              arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
-              comments: r.request_comment,
-              status: r.approved === "Unreviewed" ? "pending" : r.approved === true ? "approved" : "rejected",
-            }))
-          );
-        })
-        .catch((err) => setError(err.message));
-    }
-    fetchRequestsWithToken();
+    fetchGetRequests("")
+      .then((res) => {
+        setRequests(
+          (res.data || []).map((r: any, idx: number) => ({
+            id: r.id || idx.toString(),
+            firstName: r.first_name,
+            lastName: r.last_name,
+            houseName: r.house_id,
+            email: r.email,
+            phone: r.phone,
+            pickupAddress: r.source_address,
+            destinationAddress: r.destination_address,
+            arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+            arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+            comments: r.request_comment,
+            status: r.approved === "Unreviewed" ? "pending" : r.approved === true ? "approved" : "rejected",
+          }))
+        );
+      })
+      .catch((err) => {
+        if (err.message && (err.message.includes("Session cookie missing") || err.message.includes("not authenticated") || err.message.includes("Cookie expired") || err.message.includes("Cookie not found"))) {
+          setError("You must be logged in to view requests.");
+        } else {
+          setError(err.message || "Failed to fetch requests");
+        }
+      });
   }, []);
 
   const approve = (id: string) => {
