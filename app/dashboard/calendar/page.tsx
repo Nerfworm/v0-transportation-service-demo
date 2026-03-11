@@ -1,5 +1,22 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import { fetchGetRequests } from "@/lib/edgeClient"
+interface ReviewRequest {
+  id: string
+  firstName: string
+  lastName: string
+  houseName: string
+  email?: string
+  phone?: string
+  pickupAddress: string
+  destinationAddress: string
+  arrivalDate: string
+  arrivalTime: string
+  comments?: string
+  status?: string
+}
+
 import { Bus, ChevronLeft, ChevronRight, Calendar, Users, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
 import { useRouter } from "next/navigation"
@@ -33,13 +50,42 @@ interface CalendarEvent {
 
 
 
-export default function CalendarPage() {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(() => new Date())
-  // ...existing code...
   const [filterDriver, setFilterDriver] = useState("all")
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+
+  // Moved from top-level: requests state and effect
+  const [requests, setRequests] = useState<ReviewRequest[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null)
+  const [requestError, setRequestError] = useState<string | null>(null)
+  useEffect(() => {
+    fetchGetRequests("")
+      .then((res) => {
+        setRequests(
+          (res.data || [])
+            .map((r: any, idx: number) => ({
+              id: r.id || idx.toString(),
+              firstName: r.first_name,
+              lastName: r.last_name,
+              houseName: r.house_id,
+              email: r.email,
+              phone: r.phone,
+              pickupAddress: r.source_address,
+              destinationAddress: r.destination_address,
+              arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+              arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+              comments: r.request_comment,
+              status: r.approved === "Unreviewed" ? "pending" : r.approved,
+            }))
+            .filter((req: ReviewRequest) => req.status === "pending")
+        );
+      })
+      .catch((err) => {
+        setRequestError(err.message || "Failed to fetch requests");
+      });
+  }, []);
 
   const handleLogout = () => {
     router.push("/")
@@ -156,8 +202,88 @@ export default function CalendarPage() {
         {/* Expanded Sidebar with Requests Under Review */}
         <div className="w-[720px] max-w-[800px] bg-white rounded-xl shadow-lg flex flex-col p-6 overflow-y-auto sticky top-0 h-[1150px]">
           <h2 className="text-2xl font-bold mb-6">Requests Under Review</h2>
-          <div className="text-muted-foreground">No requests under review.</div>
+          {requestError ? (
+            <div className="text-red-600 mb-4">{requestError}</div>
+          ) : requests.length === 0 ? (
+            <div className="text-muted-foreground">No requests under review.</div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {requests.map((r) => (
+                <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => setSelectedRequest(r)}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-lg">{r.firstName} {r.lastName}</span>
+                    <span className="text-sm text-muted-foreground">{r.arrivalDate} {r.arrivalTime}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
+            {/* Request Details Modal */}
+            {selectedRequest && (
+              <>
+                <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedRequest(null)} />
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-8">
+                  <button
+                    onClick={() => setSelectedRequest(null)}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                  <h2 className="text-2xl font-bold mb-6 text-gray-900">{selectedRequest.firstName} {selectedRequest.lastName}</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-500 font-semibold">HOUSE</p>
+                      <p className="text-gray-900">{selectedRequest.houseName}</p>
+                    </div>
+                    {selectedRequest.email && (
+                      <div>
+                        <p className="text-sm text-gray-500 font-semibold">EMAIL</p>
+                        <p className="text-gray-900">{selectedRequest.email}</p>
+                      </div>
+                    )}
+                    {selectedRequest.phone && (
+                      <div>
+                        <p className="text-sm text-gray-500 font-semibold">PHONE</p>
+                        <p className="text-gray-900">{selectedRequest.phone}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-500 font-semibold">PICKUP ADDRESS</p>
+                      <p className="text-gray-900">{selectedRequest.pickupAddress}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-semibold">DESTINATION ADDRESS</p>
+                      <p className="text-gray-900">{selectedRequest.destinationAddress}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-semibold">DATE OF ARRIVAL</p>
+                      <p className="text-gray-900">{selectedRequest.arrivalDate}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-semibold">ARRIVAL TIME</p>
+                      <p className="text-gray-900">{selectedRequest.arrivalTime}</p>
+                    </div>
+                    {selectedRequest.comments && (
+                      <div>
+                        <p className="text-sm text-gray-500 font-semibold">COMMENTS</p>
+                        <p className="text-gray-900">{selectedRequest.comments}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-500 font-semibold">STATUS</p>
+                      <p className="text-gray-900">{selectedRequest.status}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedRequest(null)}
+                    className="w-full mt-8 bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
       </div>
 
       {/* Event Details Modal */}
