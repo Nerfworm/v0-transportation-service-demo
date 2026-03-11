@@ -48,15 +48,12 @@ interface CalendarEvent {
   hour: number;
 }
 
-
-
+export default function CalendarPage() {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [filterDriver, setFilterDriver] = useState("all")
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-
-  // Moved from top-level: requests state and effect
   const [requests, setRequests] = useState<ReviewRequest[]>([])
   const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
