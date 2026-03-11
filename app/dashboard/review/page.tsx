@@ -38,20 +38,22 @@ export default function Page() {
     fetchGetRequests("")
       .then((res) => {
         setRequests(
-          (res.data || []).map((r: any, idx: number) => ({
-            id: r.id || idx.toString(),
-            firstName: r.first_name,
-            lastName: r.last_name,
-            houseName: r.house_id,
-            email: r.email,
-            phone: r.phone,
-            pickupAddress: r.source_address,
-            destinationAddress: r.destination_address,
-            arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
-            arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
-            comments: r.request_comment,
-            status: r.approved === "Unreviewed" ? "pending" : r.approved === true ? "approved" : "rejected",
-          }))
+          (res.data || [])
+            .filter((r: any) => r.approved === "Unreviewed")
+            .map((r: any, idx: number) => ({
+              id: r.id || idx.toString(),
+              firstName: r.first_name,
+              lastName: r.last_name,
+              houseName: r.house_id,
+              email: r.email,
+              phone: r.phone,
+              pickupAddress: r.source_address,
+              destinationAddress: r.destination_address,
+              arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+              arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+              comments: r.request_comment,
+              status: r.approved,
+            }))
         );
       })
       .catch((err) => {
