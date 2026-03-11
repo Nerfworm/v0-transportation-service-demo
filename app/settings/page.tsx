@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, EyeOff } from "lucide-react"
 import * as Tabs from '@radix-ui/react-tabs'
 
@@ -19,7 +18,6 @@ type AccountInfo = {
   phone: string
   newPassword: string
   confirmNewPassword: string
-  requestedRole: string
 }
 
 export default function SettingsPage() {
@@ -33,10 +31,11 @@ export default function SettingsPage() {
     phone: "+1 (555) 123-4567",
     newPassword: "",
     confirmNewPassword: "",
-    requestedRole: "coordinator",
   })
   const [editableFields, setEditableFields] = useState<Partial<Record<keyof AccountInfo, boolean>>>({})
   const [saveMessage, setSaveMessage] = useState("")
+  const [emailError, setEmailError] = useState("")
+  const [phoneError, setPhoneError] = useState("")
   const [passwordRequirementsError, setPasswordRequirementsError] = useState("")
   const [passwordMatchError, setPasswordMatchError] = useState("")
   const [showNewPassword, setShowNewPassword] = useState(false)
@@ -50,7 +49,6 @@ export default function SettingsPage() {
     { key: "phone", label: "Phone", type: "tel" },
     { key: "newPassword", label: "New password", type: "password" },
     { key: "confirmNewPassword", label: "Confirm new password", type: "password" },
-    { key: "requestedRole", label: "Requested role" },
   ]
 
   function validatePassword(password: string) {
@@ -68,14 +66,42 @@ export default function SettingsPage() {
     )
   }
 
+  function validateEmail(email: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
+
+  function formatPhoneNumber(value: string) {
+    let digits = value.replace(/\D/g, "")
+    if (digits.startsWith("1")) digits = digits.slice(1)
+    digits = digits.slice(0, 10)
+    let formatted = "+1 "
+    if (digits.length > 0) {
+      formatted += "(" + digits.slice(0, 3)
+    }
+    if (digits.length >= 4) {
+      formatted += ") " + digits.slice(3, 6)
+    }
+    if (digits.length >= 7) {
+      formatted += "-" + digits.slice(6, 10)
+    }
+    return formatted.trim()
+  }
+
   const toggleFieldEdit = (field: keyof AccountInfo) => {
     setEditableFields((prev) => ({ ...prev, [field]: !prev[field] }))
     setSaveMessage("")
   }
 
   const handleFieldChange = (field: keyof AccountInfo, value: string) => {
-    setAccountInfo((prev) => ({ ...prev, [field]: value }))
+    const nextValue = field === "phone" ? formatPhoneNumber(value) : value
+    setAccountInfo((prev) => ({ ...prev, [field]: nextValue }))
     setSaveMessage("")
+    if (field === "email") {
+      setEmailError("")
+    }
+    if (field === "phone") {
+      setPhoneError("")
+    }
     if (field === "newPassword" || field === "confirmNewPassword") {
       setPasswordRequirementsError("")
       setPasswordMatchError("")
@@ -85,8 +111,21 @@ export default function SettingsPage() {
   const handleSaveAll = (e: React.FormEvent) => {
     e.preventDefault()
 
+    setEmailError("")
+    setPhoneError("")
     setPasswordRequirementsError("")
     setPasswordMatchError("")
+
+    if (!validateEmail(accountInfo.email)) {
+      setEmailError("Enter a valid email address")
+      return
+    }
+
+    const phoneDigits = accountInfo.phone.replace(/\D/g, "")
+    if (phoneDigits.length !== 10 && !(phoneDigits.length === 11 && phoneDigits.startsWith("1"))) {
+      setPhoneError("Enter a 10-digit phone number")
+      return
+    }
 
     const isUpdatingPassword = accountInfo.newPassword.length > 0 || accountInfo.confirmNewPassword.length > 0
     if (isUpdatingPassword && !validatePassword(accountInfo.newPassword)) {
@@ -102,7 +141,7 @@ export default function SettingsPage() {
     }
 
     setEditableFields({})
-    setSaveMessage("Changes saved locally. You can wire backend save next.")
+    setSaveMessage("Changes saved.")
   }
 
   const handleLogout = () => {
@@ -127,12 +166,12 @@ export default function SettingsPage() {
                   >
                     Account
                   </Tabs.Trigger>
-                  <Tabs.Trigger
+                  {/* <Tabs.Trigger
                     value="general"
                     className="w-full text-sm font-medium text-foreground text-left px-3 py-2 hover:bg-accent rounded-md data-[state=active]:bg-card data-[state=active]:border-l-4 data-[state=active]:border-primary"
                   >
                     General
-                  </Tabs.Trigger>
+                  </Tabs.Trigger> */}
                 </div>
 
                 <button
@@ -171,70 +210,66 @@ export default function SettingsPage() {
                               <Label htmlFor={field.key}>{field.label}</Label>
 
                               {editableFields[field.key] ? (
-                                field.key === "requestedRole" ? (
-                                  <Select
-                                    value={accountInfo.requestedRole}
-                                    onValueChange={(value) => handleFieldChange("requestedRole", value)}
-                                  >
-                                    <SelectTrigger id="requestedRole">
-                                      <SelectValue placeholder="Select role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="driver">Driver</SelectItem>
-                                      <SelectItem value="coordinator">Coordinator</SelectItem>
-                                      <SelectItem value="admin">Admin</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  field.type === "password" ? (
-                                    <div className="relative">
-                                      <Input
-                                        id={field.key}
-                                        type={
-                                          field.key === "newPassword"
-                                            ? (showNewPassword ? "text" : "password")
-                                            : (showConfirmNewPassword ? "text" : "password")
-                                        }
-                                        className="pr-10"
-                                        value={accountInfo[field.key]}
-                                        onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                                      />
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        className="absolute right-1 top-1/2 -translate-y-1/2"
-                                        aria-label={
-                                          field.key === "newPassword"
-                                            ? (showNewPassword ? "Hide password" : "Show password")
-                                            : (showConfirmNewPassword ? "Hide password" : "Show password")
-                                        }
-                                        onClick={() => {
-                                          if (field.key === "newPassword") {
-                                            setShowNewPassword((prev) => !prev)
-                                          } else {
-                                            setShowConfirmNewPassword((prev) => !prev)
-                                          }
-                                        }}
-                                      >
-                                        {field.key === "newPassword"
-                                          ? (showNewPassword ? <EyeOff /> : <Eye />)
-                                          : (showConfirmNewPassword ? <EyeOff /> : <Eye />)}
-                                      </Button>
-                                    </div>
-                                  ) : (
+                                field.type === "password" ? (
+                                  <div className="relative">
                                     <Input
                                       id={field.key}
-                                      type={field.type ?? "text"}
+                                      type={
+                                        field.key === "newPassword"
+                                          ? (showNewPassword ? "text" : "password")
+                                          : (showConfirmNewPassword ? "text" : "password")
+                                      }
+                                      className="pr-10"
                                       value={accountInfo[field.key]}
                                       onChange={(e) => handleFieldChange(field.key, e.target.value)}
                                     />
-                                  )
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                                      aria-label={
+                                        field.key === "newPassword"
+                                          ? (showNewPassword ? "Hide password" : "Show password")
+                                          : (showConfirmNewPassword ? "Hide password" : "Show password")
+                                      }
+                                      onClick={() => {
+                                        if (field.key === "newPassword") {
+                                          setShowNewPassword((prev) => !prev)
+                                        } else {
+                                          setShowConfirmNewPassword((prev) => !prev)
+                                        }
+                                      }}
+                                    >
+                                      {field.key === "newPassword"
+                                        ? (showNewPassword ? <EyeOff /> : <Eye />)
+                                        : (showConfirmNewPassword ? <EyeOff /> : <Eye />)}
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Input
+                                    id={field.key}
+                                    type={field.type ?? "text"}
+                                    value={accountInfo[field.key]}
+                                    onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                                  />
                                 )
                               ) : (
                                 <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/20 text-sm text-foreground">
-                                  {field.type === "password" ? "••••••••" : accountInfo[field.key]}
+                                  {field.type === "password" ? "•".repeat(accountInfo[field.key].length) : accountInfo[field.key]}
                                 </div>
+                              )}
+
+                              {field.key === "email" && emailError && (
+                                <p className="text-xs text-red-500">{emailError}</p>
+                              )}
+
+                              {field.key === "phone" && editableFields.phone && accountInfo.phone.replace(/\D/g, "").length !== 10 && !phoneError && (
+                                <p className="text-xs text-gray-500">Enter a 10-digit phone number</p>
+                              )}
+
+                              {field.key === "phone" && phoneError && (
+                                <p className="text-xs text-red-500">{phoneError}</p>
                               )}
                             </div>
 
@@ -275,13 +310,13 @@ export default function SettingsPage() {
                   </CardContent>
                 </Tabs.Content>
 
-                <Tabs.Content value="general">
+                {/* <Tabs.Content value="general">
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
                       Placeholder for general settings options such as notifications, theme, and account details.
                     </p>
                   </CardContent>
-                </Tabs.Content>
+                </Tabs.Content> */}
               </div>
             </div>
           </Card>
