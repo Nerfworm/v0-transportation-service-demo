@@ -99,7 +99,6 @@ export default function Page() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-foreground">Incoming Transport Requests</h1>
-            <div className="text-sm text-muted-foreground">Review and assign transports</div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
