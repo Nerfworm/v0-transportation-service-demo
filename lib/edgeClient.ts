@@ -1,9 +1,9 @@
 // Centralized API client for edge functions
 // Only connects to the client request edge function for now
 
-export async function fetchClientRequests(token: string) {
+export async function fetchGetRequests(token: string) {
   // Replace with your actual edge function URL
-  const url = "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/client-request";
+  const url = "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/get-requests";
   const res = await fetch(url, {
     method: "GET",
     headers: {

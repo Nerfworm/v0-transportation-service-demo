@@ -20,7 +20,7 @@ export default function ClientRequestPage() {
     phone: "",
     sourceAddress: "",
     destinationAddress: "",
-    pickupTime: "",
+    dropoffDate: "", // now dropoff date
     dropoffTime: "",
     comments: "",
   })
@@ -51,52 +51,67 @@ export default function ClientRequestPage() {
     setFormData({ ...formData, phone: formatted });
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  try {
-    // Ensure phone is submitted as +1XXXXXXXXXX (E.164)
-    const digits = formData.phone.replace(/\D/g, "").slice(-10);
-    const phoneE164 = digits.length === 10 ? `+1${digits}` : formData.phone;
-    const submitData = { ...formData, phone: phoneE164 };
-    const response = await fetch(
-      "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/submit-request",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify(submitData),
-        credentials: "include", // important if function sets cookies
+    e.preventDefault();
+    try {
+      // Ensure phone is submitted as +1XXXXXXXXXX (E.164)
+      const digits = formData.phone.replace(/\D/g, "").slice(-10);
+      const phoneE164 = digits.length === 10 ? `+1${digits}` : formData.phone;
+
+      // Combine dropoffDate and dropoffTime into ISO 8601 string for dropoffTime
+      let dropoffISO = "";
+      if (formData.dropoffDate && formData.dropoffTime) {
+        // dropoffDate: yyyy-mm-dd, dropoffTime: HH:mm
+        // Combine to yyyy-mm-ddTHH:mm:00 (seconds optional)
+        dropoffISO = new Date(`${formData.dropoffDate}T${formData.dropoffTime}:00`).toISOString();
       }
-    )
 
-    const data = await response.json()
+      const submitData = {
+        ...formData,
+        phone: phoneE164,
+        dropoffTime: dropoffISO,
+      };
 
-    if (!response.ok) {
-      alert(data.error || "Request submission failed")
-      return
+      const response = await fetch(
+        "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/submit-request",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(submitData),
+          credentials: "include", // important if function sets cookies
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Request submission failed");
+        return;
+      }
+
+      alert("Request submitted successfully!");
+      // optionally clear the form
+      setFormData({
+        firstName: "",
+        lastName: "",
+        houseId: "",
+        email: "",
+        phone: "",
+        sourceAddress: "",
+        destinationAddress: "",
+        dropoffDate: "",
+        dropoffTime: "",
+        comments: "",
+      });
+    } catch (err: any) {
+      console.error(err);
+      alert("Unexpected error: " + (err.message || err));
     }
-
-    alert("Request submitted successfully!")
-    // optionally clear the form
-    setFormData({
-      firstName: "",
-      lastName: "",
-      houseId: "",
-      email: "",
-      phone: "",
-      sourceAddress: "",
-      destinationAddress: "",
-      pickupTime: "",
-      dropoffTime: "",
-      comments: "",
-    })
-  } catch (err: any) {
-    console.error(err)
-    alert("Unexpected error: " + (err.message || err))
-  }
-}
+  };
 
 
   return (
@@ -211,13 +226,13 @@ export default function ClientRequestPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-2 col-span-1">
-                <Label htmlFor="pickupTime">Pickup Time</Label>
+                <Label htmlFor="dropoffDate">Dropoff Date</Label>
                 <Input
-                  id="pickupTime"
-                  type="time"
-                  placeholder="Pickup Time"
-                  value={formData.pickupTime}
-                  onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })}
+                  id="dropoffDate"
+                  type="date"
+                  placeholder="Dropoff Date"
+                  value={formData.dropoffDate}
+                  onChange={(e) => setFormData({ ...formData, dropoffDate: e.target.value })}
                   required
                 />
               </div>

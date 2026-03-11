@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Users, Calendar, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
-import { fetchClientRequests } from "@/lib/edgeClient"
+import { fetchGetRequests } from "@/lib/edgeClient"
+import { supabase } from "@/lib/supabaseClient"
 
 interface ReviewRequest {
   id: string
@@ -34,29 +35,35 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Replace with your actual auth token retrieval logic
-    const token = localStorage.getItem("authToken") || "";
-    fetchClientRequests(token)
-      .then((res) => {
-        // Adjust mapping if needed to match ReviewRequest interface
-        setRequests(
-          (res.data || []).map((r: any, idx: number) => ({
-            id: r.id || idx.toString(),
-            firstName: r.first_name,
-            lastName: r.last_name,
-            houseName: r.house_id,
-            email: r.email,
-            phone: r.phone,
-            pickupAddress: r.source_address,
-            destinationAddress: r.destination_address,
-            arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
-            arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
-            comments: r.request_comment,
-            status: r.approved === "Unreviewed" ? "pending" : r.approved === true ? "approved" : "rejected",
-          }))
-        );
-      })
-      .catch((err) => setError(err.message));
+    async function fetchRequestsWithToken() {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session || !session.access_token) {
+        setError("You must be logged in to view requests.");
+        return;
+      }
+      const token = session.access_token;
+      fetchGetRequests(token)
+        .then((res) => {
+          setRequests(
+            (res.data || []).map((r: any, idx: number) => ({
+              id: r.id || idx.toString(),
+              firstName: r.first_name,
+              lastName: r.last_name,
+              houseName: r.house_id,
+              email: r.email,
+              phone: r.phone,
+              pickupAddress: r.source_address,
+              destinationAddress: r.destination_address,
+              arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+              arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+              comments: r.request_comment,
+              status: r.approved === "Unreviewed" ? "pending" : r.approved === true ? "approved" : "rejected",
+            }))
+          );
+        })
+        .catch((err) => setError(err.message));
+    }
+    fetchRequestsWithToken();
   }, []);
 
   const approve = (id: string) => {
@@ -97,31 +104,37 @@ export default function Page() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {requests.map((r) => (
-              <Card key={r.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {(r.firstName?.[0] || "").toUpperCase()}{(r.lastName?.[0] || "").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{r.firstName} {r.lastName}</CardTitle>
-                    <Badge className={`mt-1 ${r.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : r.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{r.status}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>House:</span> <span>{r.houseName}</span></div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Pickup:</span> <span>{r.pickupAddress}</span></div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Destination:</span> <span>{r.destinationAddress}</span></div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Date:</span> <span>{formatDate(r.arrivalDate)}</span></div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Arrival:</span> <span>{formatTime(r.arrivalTime)}</span></div>
-                  <div className="flex gap-2 mt-3">
-                    <Button variant="outline" onClick={() => setSelected(r)}>View</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {error ? (
+              <div className="col-span-full text-center text-red-600 py-8">{error}</div>
+            ) : requests.length === 0 ? (
+              <div className="col-span-full text-center text-muted-foreground py-8">No transport requests to review.</div>
+            ) : (
+              requests.map((r) => (
+                <Card key={r.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="flex items-center gap-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {(r.firstName?.[0] || "").toUpperCase()}{(r.lastName?.[0] || "").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{r.firstName} {r.lastName}</CardTitle>
+                      <Badge className={`mt-1 ${r.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : r.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{r.status}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>House:</span> <span>{r.houseName}</span></div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Pickup:</span> <span>{r.pickupAddress}</span></div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Destination:</span> <span>{r.destinationAddress}</span></div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Date:</span> <span>{formatDate(r.arrivalDate)}</span></div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>Arrival:</span> <span>{formatTime(r.arrivalTime)}</span></div>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="outline" onClick={() => setSelected(r)}>View</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>
