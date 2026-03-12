@@ -54,9 +54,9 @@ export default function CalendarPage() {
   const [filterDriver, setFilterDriver] = useState("all")
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const [requests, setRequests] = useState<ReviewRequest[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null);
-  const [requestError, setRequestError] = useState<string | null>(null);
+  const [requests, setRequests] = useState<ReviewRequest[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null)
+  const [requestError, setRequestError] = useState<string | null>(null)
   useEffect(() => {
     fetchGetRequests("")
       .then((res) => {
@@ -76,6 +76,7 @@ export default function CalendarPage() {
               comments: r.request_comment,
               status: r.approved === "Unreviewed" ? "pending" : r.approved,
             }))
+            .filter((req: ReviewRequest) => req.status === "pending")
         );
       })
       .catch((err) => {
@@ -179,29 +180,16 @@ export default function CalendarPage() {
                   <div className="p-3 text-xs text-muted-foreground border-r border-border flex items-start justify-end">
                     {hour}
                   </div>
-                  {weekDates.map((date, dayIndex) => {
-                    // Find approved requests for this day and hour
-                    const approvedRequests = requests.filter(
-                      (r) => r.status === "Approved" &&
-                        r.arrivalDate === date.toISOString().split("T")[0] &&
-                        parseInt(r.arrivalTime.split(":")[0], 10) === (hourIndex % 12 === 0 ? 12 : hourIndex % 12)
-                    );
+                  {weekDates.map((_, dayIndex) => {
+                    // No events, just render empty cell
                     return (
                       <div
                         key={dayIndex}
                         className="p-1 min-h-16 border-r border-border last:border-r-0 hover:bg-muted/50 cursor-pointer transition-colors"
                       >
-                        {approvedRequests.map((req) => (
-                          <div
-                            key={req.id}
-                            className="bg-blue-100 text-blue-900 rounded px-2 py-1 mb-1 text-xs truncate hover:bg-blue-200"
-                            onClick={() => setSelectedRequest(req)}
-                          >
-                            {req.firstName} {req.lastName}
-                          </div>
-                        ))}
+                        {/* No event data */}
                       </div>
-                    );
+                    )
                   })}
                 </div>
               ))}
@@ -213,11 +201,11 @@ export default function CalendarPage() {
           <h2 className="text-2xl font-bold mb-6">Requests Under Review</h2>
           {requestError ? (
             <div className="text-red-600 mb-4">{requestError}</div>
-          ) : requests.length === 0 ? (
+          ) : requests.filter(r => r.status === "pending").length === 0 ? (
             <div className="text-muted-foreground">No requests under review.</div>
           ) : (
             <ul className="divide-y divide-border">
-              {requests.map((r) => (
+              {requests.filter(r => r.status === "pending").map((r) => (
                 <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => setSelectedRequest(r)}>
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-lg">{r.firstName} {r.lastName}</span>
