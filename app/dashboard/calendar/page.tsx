@@ -180,16 +180,29 @@ export default function CalendarPage() {
                   <div className="p-3 text-xs text-muted-foreground border-r border-border flex items-start justify-end">
                     {hour}
                   </div>
-                  {weekDates.map((_, dayIndex) => {
-                    // No events, just render empty cell
+                  {weekDates.map((date, dayIndex) => {
+                    // Find approved requests for this day and hour
+                    const approvedRequests = requests.filter(
+                      (r) => r.status === "Approved" &&
+                        r.arrivalDate === date.toISOString().split("T")[0] &&
+                        parseInt(r.arrivalTime.split(":")[0], 10) === (hourIndex % 12 === 0 ? 12 : hourIndex % 12)
+                    );
                     return (
                       <div
                         key={dayIndex}
                         className="p-1 min-h-16 border-r border-border last:border-r-0 hover:bg-muted/50 cursor-pointer transition-colors"
                       >
-                        {/* No event data */}
+                        {approvedRequests.map((req) => (
+                          <div
+                            key={req.id}
+                            className="bg-blue-100 text-blue-900 rounded px-2 py-1 mb-1 text-xs truncate hover:bg-blue-200"
+                            onClick={() => setSelectedRequest(req)}
+                          >
+                            {req.firstName} {req.lastName}
+                          </div>
+                        ))}
                       </div>
-                    )
+                    );
                   })}
                 </div>
               ))}
