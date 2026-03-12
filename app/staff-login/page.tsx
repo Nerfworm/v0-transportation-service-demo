@@ -70,7 +70,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             <div className="bg-primary p-3 rounded-lg">
               <Bus className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Transportation Service</h1>
+            <h1 className="text-2xl font-bold text-foreground">Staff Login</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

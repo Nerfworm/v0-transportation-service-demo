@@ -139,7 +139,7 @@ export default function RegisterPage() {
             <div className="bg-primary p-2 rounded-lg">
               <Bus className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Transportation Service</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">HavenWay</h1>
           </div>
 
           <h2 className="text-lg font-semibold text-foreground mb-6">Registration</h2>
