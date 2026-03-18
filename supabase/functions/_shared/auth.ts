@@ -121,7 +121,7 @@ export async function authenticate(req: Request): Promise<AuthResult> {
   // Grab account info from the session cookie
   const { data: accountData, error: accountError } = await supabaseAdmin
   .from("account")
-  .select("role_id, username, id, supabase_uid, first_name, last_name, email, phone")
+  .select("role_id, username, id, supabase_uid, first_name, last_name, phone")
   .eq("id", cookieData.account)
   .single();
 
@@ -135,9 +135,25 @@ export async function authenticate(req: Request): Promise<AuthResult> {
     };
   }
 
+  const { data: authUser, error: authUserError } = await supabaseAdmin
+  .auth.admin.getUserById(accountData.supabase_uid);
+
+  if (authUserError || !authUser?.user?.email) {
+    return {
+      success: false,
+      response: new Response(
+        JSON.stringify({ error: "Failed to retrieve email from auth provider." }),
+        { status: 500, headers }
+      )
+    };
+  }
+
   return {
     success: true,
-    account: accountData,
+    account: {
+      ...accountData,
+      email: authUser.user.email,
+    },
     headers
   };
 }
