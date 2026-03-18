@@ -91,7 +91,6 @@ Deno.serve(async (req) => {
         username,
         first_name: firstName,
         last_name: lastName,
-        email,
         phone: phone ?? null,
         supabase_uid: user.id,
       })
