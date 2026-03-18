@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    supabaseAdmin
+    await supabaseAdmin
     .from("cookie")
     .delete()
     .eq("account", foundUserData.id)
@@ -56,6 +56,25 @@ Deno.serve(async (req) => {
     .then(({ error }) => {
       if (error) console.error("Cookie purge failed: ", error.message);
     });
+
+    const { data: existingCookie } = await supabaseAdmin
+    .from("cookie")
+    .select("cookie, expires")
+    .eq("account", foundUserData.id)
+    .gt("expires", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()) // Cookiee expires > 1 day away
+    .order("expires", { ascending: false })
+    .limit(1)
+    .single();
+
+    if (existingCookie) {
+      const expires = new Date(existingCookie.expires).toUTCString();
+      const responseHeaders = new Headers(headers);
+      responseHeaders.append("Set-Cookie", `session=${existingCookie.cookie}; Expires=${expires}; HttpOnly; Secure; Path=/; SameSite=None`);
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: responseHeaders }
+      );
+    }
 
     const { data: cookieData, error: cookieError } = await supabaseAdmin
     .from("cookie")
