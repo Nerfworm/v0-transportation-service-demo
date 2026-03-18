@@ -1,5 +1,4 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'npm:@supabase/supabase-js@2'
 import { authenticate } from '../_shared/auth.ts'
 
 Deno.serve(async (req) => {
@@ -13,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ valid: true, data: account }),
+    JSON.stringify({ valid: true, first_name: account.first_name, last_name: account.last_name, email: account.email, username: account.username, phone: account.phone }),
     { status: 200, headers }
   );
 });
