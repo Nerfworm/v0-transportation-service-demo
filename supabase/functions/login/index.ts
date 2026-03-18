@@ -29,11 +29,16 @@ Deno.serve(async (req) => {
 
     const { data: foundUserData, error: foundUserError } = await supabaseAdmin
     .from("account")
-    .select("email, id")
+    .select("supabase_uid, id")
     .eq("username", username)
     .single();
 
-    const email = foundUserData?.email ?? "dummy@example.com"
+    let email = "dummy@example.com";
+    if (foundUserData?.supabase_uid) {
+      const { data: authUser } = await supabaseAdmin
+      .auth.admin.getUserById(foundUserData.supabase_uid);
+      email = authUser?.user?.email ?? "dummy@example.com";
+    }
 
     const { data: userData, error: userError } = await supabaseAuth.auth.signInWithPassword({
       email,
