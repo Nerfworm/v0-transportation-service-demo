@@ -37,6 +37,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log("Test 12345!");
+
     return new Response(
       JSON.stringify({ authData }),
       { status: 200, headers }
