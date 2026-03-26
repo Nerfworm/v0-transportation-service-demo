@@ -49,6 +49,25 @@ interface CalendarEvent {
 }
 
 export default function CalendarPage() {
+    // Helper to get hour index from arrivalTime string (e.g., '14:00' or '2 PM')
+    function getHourIndex(arrivalTime: string) {
+      if (!arrivalTime) return -1;
+      // Try 24-hour format first
+      const match24 = arrivalTime.match(/^(\d{1,2}):/);
+      if (match24) {
+        let hour = parseInt(match24[1], 10);
+        if (hour >= 0 && hour <= 23) return hour;
+      }
+      // Try 12-hour format with AM/PM
+      const match12 = arrivalTime.match(/^(\d{1,2}) ?(AM|PM)$/i);
+      if (match12) {
+        let hour = parseInt(match12[1], 10);
+        if (/PM/i.test(match12[2]) && hour !== 12) hour += 12;
+        if (/AM/i.test(match12[2]) && hour === 12) hour = 0;
+        return hour;
+      }
+      return -1;
+    }
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [filterDriver, setFilterDriver] = useState("all")
@@ -179,16 +198,31 @@ export default function CalendarPage() {
                   <div className="p-3 text-xs text-muted-foreground border-r border-border flex items-start justify-end">
                     {hour}
                   </div>
-                  {weekDates.map((_, dayIndex) => {
-                    // No events, just render empty cell
+                  {weekDates.map((date, dayIndex) => {
+                    // Find approved request for this day and hour
+                    const approvedRequest = requests.find(r => {
+                      if (r.status !== "Approved") return false;
+                      // Compare date
+                      const reqDate = r.arrivalDate;
+                      const cellDate = date.toISOString().split("T")[0];
+                      if (reqDate !== cellDate) return false;
+                      // Compare hour
+                      const reqHour = getHourIndex(r.arrivalTime);
+                      return reqHour === hourIndex;
+                    });
                     return (
                       <div
                         key={dayIndex}
                         className="p-1 min-h-16 border-r border-border last:border-r-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => approvedRequest && setSelectedRequest(approvedRequest)}
                       >
-                        {/* No event data */}
+                        {approvedRequest ? (
+                          <div className="bg-green-200 text-green-900 rounded px-2 py-1 text-xs font-semibold shadow">
+                            {approvedRequest.firstName} {approvedRequest.lastName}
+                          </div>
+                        ) : null}
                       </div>
-                    )
+                    );
                   })}
                 </div>
               ))}
