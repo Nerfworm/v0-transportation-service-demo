@@ -76,7 +76,6 @@ export default function CalendarPage() {
               comments: r.request_comment,
               status: r.approved,
             }))
-            .filter((req: ReviewRequest) => req.status === "pending")
         );
       })
       .catch((err) => {
@@ -201,11 +200,11 @@ export default function CalendarPage() {
           <h2 className="text-2xl font-bold mb-6">Requests Under Review</h2>
           {requestError ? (
             <div className="text-red-600 mb-4">{requestError}</div>
-          ) : requests.filter(r => r.status === "pending").length === 0 ? (
+          ) : requests.filter(r => r.status === "Pending").length === 0 ? (
             <div className="text-muted-foreground">No requests under review.</div>
           ) : (
             <ul className="divide-y divide-border">
-              {requests.filter(r => r.status === "pending").map((r) => (
+              {requests.filter(r => r.status === "Pending").map((r) => (
                 <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => setSelectedRequest(r)}>
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-lg">{r.firstName} {r.lastName}</span>
