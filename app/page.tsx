@@ -12,7 +12,7 @@ export default function MainSelectionPage() {
           <div className="bg-primary p-3 rounded-lg">
             <Bus className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Transportation Service</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">HavenWay</h1>
         </div>
         <div className="space-y-4">
           <Link href="/client-request" className="block">
