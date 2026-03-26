@@ -74,7 +74,7 @@ export default function CalendarPage() {
               arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
               arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
               comments: r.request_comment,
-              status: r.approved === "Unreviewed" ? "pending" : r.approved,
+              status: r.approved,
             }))
             .filter((req: ReviewRequest) => req.status === "pending")
         );
@@ -180,29 +180,16 @@ export default function CalendarPage() {
                   <div className="p-3 text-xs text-muted-foreground border-r border-border flex items-start justify-end">
                     {hour}
                   </div>
-                  {weekDates.map((date, dayIndex) => {
-                    // Find approved requests for this day and hour
-                    const approvedRequests = requests.filter(
-                      (r) => r.status === "Approved" &&
-                        r.arrivalDate === date.toISOString().split("T")[0] &&
-                        parseInt(r.arrivalTime.split(":")[0], 10) === (hourIndex % 12 === 0 ? 12 : hourIndex % 12)
-                    );
+                  {weekDates.map((_, dayIndex) => {
+                    // No events, just render empty cell
                     return (
                       <div
                         key={dayIndex}
                         className="p-1 min-h-16 border-r border-border last:border-r-0 hover:bg-muted/50 cursor-pointer transition-colors"
                       >
-                        {approvedRequests.map((req) => (
-                          <div
-                            key={req.id}
-                            className="bg-blue-100 text-blue-900 rounded px-2 py-1 mb-1 text-xs truncate hover:bg-blue-200"
-                            onClick={() => setSelectedRequest(req)}
-                          >
-                            {req.firstName} {req.lastName}
-                          </div>
-                        ))}
+                        {/* No event data */}
                       </div>
-                    );
+                    )
                   })}
                 </div>
               ))}
