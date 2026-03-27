@@ -8,7 +8,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Users, Calendar, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
+
 import { fetchGetRequests } from "@/lib/edgeClient"
+
+// Add a client function to call the edge function for updating request status
+async function setRequestPending(requestId: string) {
+  const res = await fetch("/api/review-update-request", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requestId }),
+  });
+  return res.json();
+}
 
 
 interface ReviewRequest {
@@ -65,9 +77,19 @@ export default function Page() {
       });
   }, []);
 
-  const approve = (id: string) => {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "approved" } : r)))
-    setSelected(null)
+
+  const approve = async (id: string) => {
+    try {
+      const res = await setRequestPending(id);
+      if (res.ok) {
+        setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "pending" } : r)));
+        setSelected(null);
+      } else {
+        setError(res.error || "Failed to update status");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to update status");
+    }
   }
 
   const reject = (id: string) => {
