@@ -199,9 +199,9 @@ export default function CalendarPage() {
                     {hour}
                   </div>
                   {weekDates.map((date, dayIndex) => {
-                    // Find approved request for this day and hour
-                    const approvedRequest = requests.find(r => {
-                      if (r.status !== "Approved") return false;
+                    // Find all approved requests for this day and hour
+                    const approvedRequests = requests.filter(r => {
+                      if (r.status !== "approved" && r.status !== "Approved") return false;
                       // Compare date
                       const reqDate = r.arrivalDate;
                       const cellDate = date.toISOString().split("T")[0];
@@ -214,13 +214,16 @@ export default function CalendarPage() {
                       <div
                         key={dayIndex}
                         className="p-1 min-h-16 border-r border-border last:border-r-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => approvedRequest && setSelectedRequest(approvedRequest)}
                       >
-                        {approvedRequest ? (
-                          <div className="bg-green-200 text-green-900 rounded px-2 py-1 text-xs font-semibold shadow">
-                            {approvedRequest.firstName} {approvedRequest.lastName}
+                        {approvedRequests.length > 0 && approvedRequests.map((ar, idx) => (
+                          <div
+                            key={ar.id}
+                            className="bg-green-200 text-green-900 rounded px-2 py-1 text-xs font-semibold shadow mb-1"
+                            onClick={() => setSelectedRequest(ar)}
+                          >
+                            {ar.firstName} {ar.lastName} <span className="font-normal">({ar.arrivalTime})</span>
                           </div>
-                        ) : null}
+                        ))}
                       </div>
                     );
                   })}
