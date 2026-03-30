@@ -75,6 +75,8 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [requests, setRequests] = useState<ReviewRequest[]>([])
   const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null)
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const [requestError, setRequestError] = useState<string | null>(null)
   useEffect(() => {
     fetchGetRequests("")
@@ -287,7 +289,28 @@ export default function CalendarPage() {
                   </div>
                   <div className="flex gap-3 mt-6">
                     <Button className="flex-1">Approve</Button>
-                    <Button variant="ghost" className="flex-1">Reject</Button>
+                    <Button variant="ghost" className="flex-1" onClick={() => setShowRejectModal(true)}>Reject</Button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Reject Reason Modal */}
+            {showRejectModal && (
+              <>
+                <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowRejectModal(false)} />
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                  <button onClick={() => setShowRejectModal(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                  <h2 className="text-xl font-bold mb-4">Reason for Rejection</h2>
+                  <textarea
+                    className="w-full border rounded p-2 mb-4 min-h-[80px]"
+                    placeholder="Enter reason for rejection..."
+                    value={rejectReason}
+                    onChange={e => setRejectReason(e.target.value)}
+                  />
+                  <div className="flex gap-3 mt-4">
+                    <Button className="flex-1" onClick={() => setShowRejectModal(false)}>Submit</Button>
+                    <Button variant="ghost" className="flex-1" onClick={() => setShowRejectModal(false)}>Cancel</Button>
                   </div>
                 </div>
               </>
