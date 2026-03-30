@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ authData }),
+      JSON.stringify({ auth: authData, acct: account }),
       { status: 200, headers }
     );
   } catch (err) {
