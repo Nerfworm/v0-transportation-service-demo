@@ -1,7 +1,7 @@
 "use client"
 
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bus, User, LogOut, Phone, Mail, Car } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,13 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import DashboardLayout from '@/components/DashboardLayout'
 
+
 type Driver = {
-  id: string;
-  name: string;
-  email: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
   phone: string;
-  vehicle: string;
-  status: string;
+  supabase_uid: string;
 };
 
 
@@ -26,6 +26,20 @@ export default function DriversPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [driversList, setDriversList] = useState<Driver[]>([])
+    useEffect(() => {
+      async function fetchDrivers() {
+        try {
+          const res = await fetch("/api/get-drivers");
+          const data = await res.json();
+          if (data.valid && Array.isArray(data.data)) {
+            setDriversList(data.data);
+          }
+        } catch (err) {
+          // Optionally handle error
+        }
+      }
+      fetchDrivers();
+    }, []);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -70,33 +84,25 @@ export default function DriversPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {driversList.map((driver) => (
-            <Card key={driver.id} className="hover:shadow-lg transition-shadow">
+            <Card key={driver.supabase_uid} className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center gap-4">
                 <Avatar className="h-12 w-12">
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {driver.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {driver.first_name[0]}{driver.last_name[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <CardTitle className="text-lg">{driver.name}</CardTitle>
-                  <Badge className={`mt-1 ${getStatusColor(driver.status)}`}>{driver.status.replace("-", " ")}</Badge>
+                  <CardTitle className="text-lg">{driver.first_name} {driver.last_name}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
-                  <span>{driver.email}</span>
+                  <span>{driver.email ?? <span className="italic">No email</span>}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Phone className="h-4 w-4" />
                   <span>{driver.phone}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Car className="h-4 w-4" />
-                  <span>{driver.vehicle}</span>
                 </div>
               </CardContent>
             </Card>
