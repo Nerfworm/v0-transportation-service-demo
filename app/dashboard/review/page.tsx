@@ -40,11 +40,16 @@ interface ReviewRequest {
 
 
 
+
 export default function Page() {
   const router = useRouter()
   const [requests, setRequests] = useState<ReviewRequest[]>([])
   const [selected, setSelected] = useState<ReviewRequest | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1);
+  const REVIEWS_PER_PAGE = 6;
+  const totalPages = Math.ceil(requests.length / REVIEWS_PER_PAGE);
+  const paginatedRequests = requests.slice((page - 1) * REVIEWS_PER_PAGE, page * REVIEWS_PER_PAGE);
 
   useEffect(() => {
     fetchGetRequests("")
@@ -129,7 +134,7 @@ export default function Page() {
             ) : requests.length === 0 ? (
               <div className="col-span-full text-center text-muted-foreground py-8">No transport requests to review.</div>
             ) : (
-              requests.map((r) => (
+              paginatedRequests.map((r) => (
                 <Card key={r.id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="flex items-center gap-4">
                     <Avatar className="h-12 w-12">
@@ -156,6 +161,26 @@ export default function Page() {
               ))
             )}
           </div>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="mx-2 text-sm">Page {page} of {totalPages}</span>
+              <Button
+                variant="outline"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
