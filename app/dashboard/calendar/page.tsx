@@ -241,14 +241,29 @@ export default function CalendarPage() {
             <div className="text-muted-foreground">No requests under review.</div>
           ) : (
             <ul className="divide-y divide-border">
-              {requests.filter(r => r.status === "Pending").map((r) => (
-                <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => setSelectedRequest(r)}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-lg">{r.firstName} {r.lastName}</span>
-                    <span className="text-sm text-muted-foreground">{r.arrivalDate} {r.arrivalTime}</span>
-                  </div>
-                </li>
-              ))}
+              {requests.filter(r => r.status === "Pending").map((r) => {
+                // Format date as 'Month D, YYYY'
+                const formattedDate = r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+                // Format time as 'h:mm AM/PM'
+                let formattedTime = r.arrivalTime;
+                if (r.arrivalTime && r.arrivalTime.includes(":")) {
+                  const [h, m] = r.arrivalTime.split(":");
+                  if (!isNaN(Number(h)) && !isNaN(Number(m))) {
+                    const hour = parseInt(h, 10);
+                    const ampm = hour >= 12 ? "PM" : "AM";
+                    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+                    formattedTime = `${hour12}:${m} ${ampm}`;
+                  }
+                }
+                return (
+                  <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => setSelectedRequest(r)}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-lg">{r.firstName} {r.lastName}</span>
+                      <span className="text-sm text-muted-foreground">{formattedDate} {formattedTime}</span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
