@@ -13,9 +13,19 @@ export default function HomePage() {
   return (
     <DashboardLayout>
       <section className="flex-1 flex items-center justify-center px-50 py-12">
-        <div className="w-full min-h-[700px] grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="w-full min-h-[700px] grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Stats Widget */}
+          <Card className="shadow-md col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" /> Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StatsWidget />
+            </CardContent>
+          </Card>
+
           {/* Calendar Widget */}
-          <Card className="shadow-md">
+          <Card className="shadow-md col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5" /> Calendar</CardTitle>
             </CardHeader>
@@ -25,7 +35,7 @@ export default function HomePage() {
           </Card>
 
           {/* Recent Activity Widget */}
-          <Card className="shadow-md">
+          <Card className="shadow-md col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Bell className="w-5 h-5" /> Recent Activity</CardTitle>
             </CardHeader>
@@ -34,6 +44,52 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
+      // Stats Widget Component
+      import { useEffect, useState } from 'react';
+      import { fetchGetRequests } from '@/lib/edgeClient';
+
+      function StatsWidget() {
+        const [stats, setStats] = useState({ pending: 0, unreviewed: 0, approved: 0 });
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState(null);
+
+        useEffect(() => {
+          fetchGetRequests("")
+            .then((res) => {
+              const data = res.data || [];
+              setStats({
+                pending: data.filter((r: any) => r.approved === 'pending').length,
+                unreviewed: data.filter((r: any) => r.approved === 'Unreviewed').length,
+                approved: data.filter((r: any) => r.approved === 'approved').length,
+              });
+              setLoading(false);
+            })
+            .catch((err) => {
+              setError('Failed to load stats');
+              setLoading(false);
+            });
+        }, []);
+
+        if (loading) return <div>Loading...</div>;
+        if (error) return <div className="text-red-500">{error}</div>;
+
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Pending Requests</span>
+              <span className="font-bold text-yellow-600">{stats.pending}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Unreviewed Requests</span>
+              <span className="font-bold text-blue-600">{stats.unreviewed}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Approved Requests</span>
+              <span className="font-bold text-green-600">{stats.approved}</span>
+            </div>
+          </div>
+        );
+      }
       </section>
     </DashboardLayout>
   );
