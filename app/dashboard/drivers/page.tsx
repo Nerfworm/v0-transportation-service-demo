@@ -28,7 +28,12 @@ export default function DriversPage() {
   useEffect(() => {
     async function fetchDrivers() {
       try {
-        const res = await fetch("https://svvguxhkhesrlzmydghw.functions.supabase.co/get-drivers", {
+        const res = await fetch("https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/get-drivers", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
           credentials: "include"
         });
         const data = await res.json();
