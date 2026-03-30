@@ -271,64 +271,24 @@ export default function CalendarPage() {
             {selectedRequest && (
               <>
                 <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedRequest(null)} />
-                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-8">
-                  <button
-                    onClick={() => setSelectedRequest(null)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
-                  >
-                    ×
-                  </button>
-                  <h2 className="text-2xl font-bold mb-6 text-gray-900">{selectedRequest.firstName} {selectedRequest.lastName}</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-gray-500 font-semibold">HOUSE</p>
-                      <p className="text-gray-900">{selectedRequest.houseName}</p>
-                    </div>
-                    {selectedRequest.email && (
-                      <div>
-                        <p className="text-sm text-gray-500 font-semibold">EMAIL</p>
-                        <p className="text-gray-900">{selectedRequest.email}</p>
-                      </div>
-                    )}
-                    {selectedRequest.phone && (
-                      <div>
-                        <p className="text-sm text-gray-500 font-semibold">PHONE</p>
-                        <p className="text-gray-900">{selectedRequest.phone}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-500 font-semibold">PICKUP ADDRESS</p>
-                      <p className="text-gray-900">{selectedRequest.pickupAddress}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 font-semibold">DESTINATION ADDRESS</p>
-                      <p className="text-gray-900">{selectedRequest.destinationAddress}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 font-semibold">DATE OF ARRIVAL</p>
-                      <p className="text-gray-900">{selectedRequest.arrivalDate}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 font-semibold">ARRIVAL TIME</p>
-                      <p className="text-gray-900">{selectedRequest.arrivalTime}</p>
-                    </div>
-                    {selectedRequest.comments && (
-                      <div>
-                        <p className="text-sm text-gray-500 font-semibold">COMMENTS</p>
-                        <p className="text-gray-900">{selectedRequest.comments}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-500 font-semibold">STATUS</p>
-                      <p className="text-gray-900">{selectedRequest.status}</p>
-                    </div>
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                  <button onClick={() => setSelectedRequest(null)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                  <h2 className="text-xl font-bold mb-2">{selectedRequest.firstName} {selectedRequest.lastName}</h2>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>House Name:</strong> {selectedRequest.houseName}</div>
+                    {selectedRequest.email && <div><strong>Email:</strong> {selectedRequest.email}</div>}
+                    {selectedRequest.phone && <div><strong>Phone:</strong> {selectedRequest.phone}</div>}
+                    <div><strong>Pickup Address:</strong> {selectedRequest.pickupAddress}</div>
+                    <div><strong>Destination Address:</strong> {selectedRequest.destinationAddress}</div>
+                    <div><strong>Date of Arrival:</strong> {selectedRequest.arrivalDate}</div>
+                    <div><strong>Arrival Time:</strong> {selectedRequest.arrivalTime}</div>
+                    {selectedRequest.comments && <div><strong>Comments:</strong> {selectedRequest.comments}</div>}
+                    <div><strong>Status:</strong> {selectedRequest.status}</div>
                   </div>
-                  <button
-                    onClick={() => setSelectedRequest(null)}
-                    className="w-full mt-8 bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                  >
-                    Close
-                  </button>
+                  <div className="flex gap-3 mt-6">
+                    <Button className="flex-1">Approve</Button>
+                    <Button variant="ghost" className="flex-1">Reject</Button>
+                  </div>
                 </div>
               </>
             )}
