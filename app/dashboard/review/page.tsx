@@ -122,7 +122,7 @@ export default function Page() {
 
   return (
     <DashboardLayout>
-      <div className="flex-1 overflow-auto px-6 py-8">
+      <div className="w-full px-6 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-foreground">Incoming Transport Requests</h1>
