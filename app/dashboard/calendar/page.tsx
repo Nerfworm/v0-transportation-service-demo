@@ -78,6 +78,31 @@ export default function CalendarPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [requestError, setRequestError] = useState<string | null>(null)
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [driversList, setDriversList] = useState<any[]>([]);
+  const [driverSearch, setDriverSearch] = useState("");
+  const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [vehicle, setVehicle] = useState("");
+    // Fetch drivers for approve modal
+    useEffect(() => {
+      async function fetchDrivers() {
+        try {
+          const res = await fetch("https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/get-drivers", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            },
+            credentials: "include"
+          });
+          const data = await res.json();
+          if (data.valid && Array.isArray(data.data)) {
+            setDriversList(data.data);
+          }
+        } catch (err) {}
+      }
+      if (showApproveModal) fetchDrivers();
+    }, [showApproveModal]);
   useEffect(() => {
     fetchGetRequests("")
       .then((res) => {
@@ -288,7 +313,62 @@ export default function CalendarPage() {
                     <div><strong>Status:</strong> {selectedRequest.status}</div>
                   </div>
                   <div className="flex gap-3 mt-6">
-                    <Button className="flex-1">Approve</Button>
+                    <Button className="flex-1" onClick={() => setShowApproveModal(true)}>Approve</Button>
+                                {/* Approve Modal */}
+                                {showApproveModal && (
+                                  <>
+                                    <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowApproveModal(false)} />
+                                    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                                      <button onClick={() => setShowApproveModal(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                                      <h2 className="text-xl font-bold mb-4">Assign Driver & Vehicle</h2>
+                                      <div className="mb-4">
+                                        <label className="block text-sm font-semibold mb-1">Driver</label>
+                                        <input
+                                          type="text"
+                                          className="w-full border rounded p-2 mb-1"
+                                          placeholder="Search driver by name..."
+                                          value={driverSearch}
+                                          onChange={e => {
+                                            setDriverSearch(e.target.value);
+                                            setSelectedDriver(null);
+                                          }}
+                                        />
+                                        <div className="border rounded bg-white max-h-32 overflow-y-auto">
+                                          {driversList
+                                            .filter(d =>
+                                              (d.first_name + " " + d.last_name).toLowerCase().includes(driverSearch.toLowerCase())
+                                            )
+                                            .map(d => (
+                                              <div
+                                                key={d.supabase_uid}
+                                                className={`px-3 py-2 cursor-pointer hover:bg-muted ${selectedDriver?.supabase_uid === d.supabase_uid ? 'bg-primary text-primary-foreground' : ''}`}
+                                                onClick={() => setSelectedDriver(d)}
+                                              >
+                                                {d.first_name} {d.last_name}
+                                              </div>
+                                            ))}
+                                        </div>
+                                        {selectedDriver && (
+                                          <div className="mt-1 text-xs text-muted-foreground">Selected: {selectedDriver.first_name} {selectedDriver.last_name}</div>
+                                        )}
+                                      </div>
+                                      <div className="mb-4">
+                                        <label className="block text-sm font-semibold mb-1">Vehicle</label>
+                                        <input
+                                          type="text"
+                                          className="w-full border rounded p-2"
+                                          placeholder="Enter vehicle..."
+                                          value={vehicle}
+                                          onChange={e => setVehicle(e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="flex gap-3 mt-4">
+                                        <Button className="flex-1" onClick={() => setShowApproveModal(false)}>Submit</Button>
+                                        <Button variant="ghost" className="flex-1" onClick={() => setShowApproveModal(false)}>Cancel</Button>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
                     <Button variant="ghost" className="flex-1" onClick={() => setShowRejectModal(true)}>Reject</Button>
                   </div>
                 </div>
