@@ -1,6 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { fetchGetRequests } from "@/lib/edgeClient"
+interface ReviewRequest {
+  id: string
+  firstName: string
+  lastName: string
+  houseName: string
+  email?: string
+  phone?: string
+  pickupAddress: string
+  destinationAddress: string
+  arrivalDate: string
+  arrivalTime: string
+  comments?: string
+  status?: string
+}
+
 import { Bus, ChevronLeft, ChevronRight, Calendar, Users, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
 import { useRouter } from "next/navigation"
@@ -32,15 +48,86 @@ interface CalendarEvent {
   hour: number;
 }
 
-
-
 export default function CalendarPage() {
+    // Helper to get hour index from arrivalTime string (e.g., '14:00' or '2 PM')
+    function getHourIndex(arrivalTime: string) {
+      if (!arrivalTime) return -1;
+      // Try 24-hour format first
+      const match24 = arrivalTime.match(/^(\d{1,2}):/);
+      if (match24) {
+        let hour = parseInt(match24[1], 10);
+        if (hour >= 0 && hour <= 23) return hour;
+      }
+      // Try 12-hour format with AM/PM
+      const match12 = arrivalTime.match(/^(\d{1,2}) ?(AM|PM)$/i);
+      if (match12) {
+        let hour = parseInt(match12[1], 10);
+        if (/PM/i.test(match12[2]) && hour !== 12) hour += 12;
+        if (/AM/i.test(match12[2]) && hour === 12) hour = 0;
+        return hour;
+      }
+      return -1;
+    }
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(() => new Date())
-  // ...existing code...
   const [filterDriver, setFilterDriver] = useState("all")
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const [requests, setRequests] = useState<ReviewRequest[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null)
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [requestError, setRequestError] = useState<string | null>(null)
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [driversList, setDriversList] = useState<any[]>([]);
+  const [driverSearch, setDriverSearch] = useState("");
+  const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [vehicle, setVehicle] = useState("");
+    // Fetch drivers for approve modal
+    useEffect(() => {
+      async function fetchDrivers() {
+        try {
+          const res = await fetch("https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/get-drivers", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            },
+            credentials: "include"
+          });
+          const data = await res.json();
+          if (data.valid && Array.isArray(data.data)) {
+            setDriversList(data.data);
+          }
+        } catch (err) {}
+      }
+      if (showApproveModal) fetchDrivers();
+    }, [showApproveModal]);
+  useEffect(() => {
+    fetchGetRequests("")
+      .then((res) => {
+        setRequests(
+          (res.data || [])
+            .map((r: any, idx: number) => ({
+              id: r.id || idx.toString(),
+              firstName: r.first_name,
+              lastName: r.last_name,
+              houseName: r.house_id,
+              email: r.email,
+              phone: r.phone,
+              pickupAddress: r.source_address,
+              destinationAddress: r.destination_address,
+              arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+              arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+              comments: r.request_comment,
+              status: r.approved,
+            }))
+        );
+      })
+      .catch((err) => {
+        setRequestError(err.message || "Failed to fetch requests");
+      });
+  }, []);
 
   const handleLogout = () => {
     router.push("/")
@@ -74,22 +161,7 @@ export default function CalendarPage() {
   })
 
   return (
-    <DashboardLayout
-      menuOpen={menuOpen}
-      setMenuOpen={setMenuOpen}
-      onSettingsClick={() => {
-        router.push('/settings');
-        setMenuOpen(false);
-      }}
-      onProfileClick={() => {
-        router.push('/profile');
-        setMenuOpen(false);
-      }}
-      onHelpClick={() => {
-        router.push('/help');
-        setMenuOpen(false);
-      }}
-    >
+    <DashboardLayout>
 
       <div className="flex flex-row w-full h-full overflow-hidden">
         {/* Calendar Main Area */}
@@ -153,16 +225,34 @@ export default function CalendarPage() {
                   <div className="p-3 text-xs text-muted-foreground border-r border-border flex items-start justify-end">
                     {hour}
                   </div>
-                  {weekDates.map((_, dayIndex) => {
-                    // No events, just render empty cell
+                  {weekDates.map((date, dayIndex) => {
+                    // Find all approved requests for this day and hour
+                    const approvedRequests = requests.filter(r => {
+                      if (r.status !== "approved" && r.status !== "Approved") return false;
+                      // Compare date
+                      const reqDate = r.arrivalDate;
+                      const cellDate = date.toISOString().split("T")[0];
+                      if (reqDate !== cellDate) return false;
+                      // Compare hour
+                      const reqHour = getHourIndex(r.arrivalTime);
+                      return reqHour === hourIndex;
+                    });
                     return (
                       <div
                         key={dayIndex}
                         className="p-1 min-h-16 border-r border-border last:border-r-0 hover:bg-muted/50 cursor-pointer transition-colors"
                       >
-                        {/* No event data */}
+                        {approvedRequests.length > 0 && approvedRequests.map((ar, idx) => (
+                          <div
+                            key={ar.id}
+                            className="bg-green-200 text-green-900 rounded px-2 py-1 text-xs font-semibold shadow mb-1"
+                            onClick={() => setSelectedRequest(ar)}
+                          >
+                            {ar.firstName} {ar.lastName} <span className="font-normal">({ar.arrivalTime})</span>
+                          </div>
+                        ))}
                       </div>
-                    )
+                    );
                   })}
                 </div>
               ))}
@@ -172,8 +262,141 @@ export default function CalendarPage() {
         {/* Expanded Sidebar with Requests Under Review */}
         <div className="w-[720px] max-w-[800px] bg-white rounded-xl shadow-lg flex flex-col p-6 overflow-y-auto sticky top-0 h-[1150px]">
           <h2 className="text-2xl font-bold mb-6">Requests Under Review</h2>
-          <div className="text-muted-foreground">No requests under review.</div>
+          {requestError ? (
+            <div className="text-red-600 mb-4">{requestError}</div>
+          ) : requests.filter(r => r.status === "Pending").length === 0 ? (
+            <div className="text-muted-foreground">No requests under review.</div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {requests.filter(r => r.status === "Pending").map((r) => {
+                // Format date as 'Month D, YYYY'
+                const formattedDate = r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+                // Format time as 'h:mm AM/PM'
+                let formattedTime = r.arrivalTime;
+                if (r.arrivalTime && r.arrivalTime.includes(":")) {
+                  const [h, m] = r.arrivalTime.split(":");
+                  if (!isNaN(Number(h)) && !isNaN(Number(m))) {
+                    const hour = parseInt(h, 10);
+                    const ampm = hour >= 12 ? "PM" : "AM";
+                    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+                    formattedTime = `${hour12}:${m} ${ampm}`;
+                  }
+                }
+                return (
+                  <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => setSelectedRequest(r)}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-lg">{r.firstName} {r.lastName}</span>
+                      <span className="text-sm text-muted-foreground">{formattedDate} {formattedTime}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
+            {/* Request Details Modal */}
+            {selectedRequest && (
+              <>
+                <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedRequest(null)} />
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                  <button onClick={() => setSelectedRequest(null)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                  <h2 className="text-xl font-bold mb-2">{selectedRequest.firstName} {selectedRequest.lastName}</h2>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>House Name:</strong> {selectedRequest.houseName}</div>
+                    {selectedRequest.email && <div><strong>Email:</strong> {selectedRequest.email}</div>}
+                    {selectedRequest.phone && <div><strong>Phone:</strong> {selectedRequest.phone}</div>}
+                    <div><strong>Pickup Address:</strong> {selectedRequest.pickupAddress}</div>
+                    <div><strong>Destination Address:</strong> {selectedRequest.destinationAddress}</div>
+                    <div><strong>Date of Arrival:</strong> {selectedRequest.arrivalDate}</div>
+                    <div><strong>Arrival Time:</strong> {selectedRequest.arrivalTime}</div>
+                    {selectedRequest.comments && <div><strong>Comments:</strong> {selectedRequest.comments}</div>}
+                    <div><strong>Status:</strong> {selectedRequest.status}</div>
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                    <Button className="flex-1" onClick={() => setShowApproveModal(true)}>Approve</Button>
+                                {/* Approve Modal */}
+                                {showApproveModal && (
+                                  <>
+                                    <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowApproveModal(false)} />
+                                    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                                      <button onClick={() => setShowApproveModal(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                                      <h2 className="text-xl font-bold mb-4">Assign Driver & Vehicle</h2>
+                                      <div className="mb-4">
+                                        <label className="block text-sm font-semibold mb-1">Driver</label>
+                                        <input
+                                          type="text"
+                                          className="w-full border rounded p-2 mb-1"
+                                          placeholder="Search driver by name..."
+                                          value={driverSearch}
+                                          onChange={e => {
+                                            setDriverSearch(e.target.value);
+                                            setSelectedDriver(null);
+                                          }}
+                                        />
+                                        <div className="border rounded bg-white max-h-32 overflow-y-auto shadow-md">
+                                          {driversList
+                                            .filter(d =>
+                                              (d.first_name + " " + d.last_name).toLowerCase().includes(driverSearch.toLowerCase())
+                                            )
+                                            .map(d => (
+                                              <div
+                                                key={d.supabase_uid}
+                                                className={`px-3 py-2 cursor-pointer transition-colors
+                                                  ${selectedDriver?.supabase_uid === d.supabase_uid ? 'bg-gray-200 text-gray-900 font-semibold' : 'bg-white text-gray-900'}
+                                                  hover:bg-gray-100 hover:text-black`}
+                                                onClick={() => setSelectedDriver(d)}
+                                              >
+                                                {d.first_name} {d.last_name}
+                                              </div>
+                                            ))}
+                                        </div>
+                                        {selectedDriver && (
+                                          <div className="mt-1 text-xs text-muted-foreground">Selected: {selectedDriver.first_name} {selectedDriver.last_name}</div>
+                                        )}
+                                      </div>
+                                      <div className="mb-4">
+                                        <label className="block text-sm font-semibold mb-1">Vehicle</label>
+                                        <input
+                                          type="text"
+                                          className="w-full border rounded p-2"
+                                          placeholder="Enter vehicle..."
+                                          value={vehicle}
+                                          onChange={e => setVehicle(e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="flex gap-3 mt-4">
+                                        <Button className="flex-1" onClick={() => setShowApproveModal(false)}>Submit</Button>
+                                        <Button variant="ghost" className="flex-1" onClick={() => setShowApproveModal(false)}>Cancel</Button>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                    <Button variant="ghost" className="flex-1" onClick={() => setShowRejectModal(true)}>Reject</Button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Reject Reason Modal */}
+            {showRejectModal && (
+              <>
+                <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowRejectModal(false)} />
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                  <button onClick={() => setShowRejectModal(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                  <h2 className="text-xl font-bold mb-4">Reason for Rejection</h2>
+                  <textarea
+                    className="w-full border rounded p-2 mb-4 min-h-[80px]"
+                    placeholder="Enter reason for rejection..."
+                    value={rejectReason}
+                    onChange={e => setRejectReason(e.target.value)}
+                  />
+                  <div className="flex gap-3 mt-4">
+                    <Button className="flex-1" onClick={() => setShowRejectModal(false)}>Submit</Button>
+                    <Button variant="ghost" className="flex-1" onClick={() => setShowRejectModal(false)}>Cancel</Button>
+                  </div>
+                </div>
+              </>
+            )}
       </div>
 
       {/* Event Details Modal */}
