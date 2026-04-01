@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import DashboardLayout from "@/components/DashboardLayout"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff } from "lucide-react"
 import * as Tabs from '@radix-ui/react-tabs'
+
+const SUPABASE_FUNCTIONS_URL = "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1"
 
 type AccountInfo = {
   firstName: string
@@ -24,22 +26,58 @@ export default function SettingsPage() {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountInfo, setAccountInfo] = useState<AccountInfo>({
-    firstName: "Alex",
-    lastName: "Morgan",
-    username: "amorgan",
-    email: "alex.morgan@example.com",
-    phone: "+1 (555) 123-4567",
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    phone: "",
     newPassword: "",
     confirmNewPassword: "",
   })
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState("")
   const [editableFields, setEditableFields] = useState<Partial<Record<keyof AccountInfo, boolean>>>({})
   const [saveMessage, setSaveMessage] = useState("")
+  const [saveError, setSaveError] = useState("")
   const [emailError, setEmailError] = useState("")
   const [phoneError, setPhoneError] = useState("")
   const [passwordRequirementsError, setPasswordRequirementsError] = useState("")
   const [passwordMatchError, setPasswordMatchError] = useState("")
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
+
+  useEffect(() => {
+    async function fetchAccount() {
+      try {
+        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/my-account`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          credentials: "include",
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setFetchError(data.error || "Failed to load account data")
+          return
+        }
+        setAccountInfo((prev) => ({
+          ...prev,
+          firstName: data.first_name ?? "",
+          lastName: data.last_name ?? "",
+          username: data.username ?? "",
+          email: data.email ?? "",
+          phone: data.phone ?? "",
+        }))
+      } catch {
+        setFetchError("Failed to load account data")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAccount()
+  }, [])
 
   const accountFields: Array<{ key: keyof AccountInfo; label: string; type?: string }> = [
     { key: "firstName", label: "First name" },
@@ -90,12 +128,14 @@ export default function SettingsPage() {
   const toggleFieldEdit = (field: keyof AccountInfo) => {
     setEditableFields((prev) => ({ ...prev, [field]: !prev[field] }))
     setSaveMessage("")
+    setSaveError("")
   }
 
   const handleFieldChange = (field: keyof AccountInfo, value: string) => {
     const nextValue = field === "phone" ? formatPhoneNumber(value) : value
     setAccountInfo((prev) => ({ ...prev, [field]: nextValue }))
     setSaveMessage("")
+    setSaveError("")
     if (field === "email") {
       setEmailError("")
     }
@@ -108,13 +148,15 @@ export default function SettingsPage() {
     }
   }
 
-  const handleSaveAll = (e: React.FormEvent) => {
+  const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault()
 
     setEmailError("")
     setPhoneError("")
     setPasswordRequirementsError("")
     setPasswordMatchError("")
+    setSaveMessage("")
+    setSaveError("")
 
     if (!validateEmail(accountInfo.email)) {
       setEmailError("Enter a valid email address")
@@ -140,8 +182,41 @@ export default function SettingsPage() {
       return
     }
 
-    setEditableFields({})
-    setSaveMessage("Changes saved.")
+    try {
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-account`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          firstName: accountInfo.firstName,
+          lastName: accountInfo.lastName,
+          username: accountInfo.username,
+          email: accountInfo.email,
+          phone: accountInfo.phone,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setSaveError(data.error || "Failed to save changes")
+        return
+      }
+      if (data.account) {
+        setAccountInfo((prev) => ({
+          ...prev,
+          firstName: data.account.first_name ?? prev.firstName,
+          lastName: data.account.last_name ?? prev.lastName,
+          username: data.account.username ?? prev.username,
+          phone: data.account.phone ?? prev.phone,
+        }))
+      }
+      setEditableFields({})
+      setSaveMessage("Changes saved.")
+    } catch {
+      setSaveError("Failed to save changes. Please try again.")
+    }
   }
 
   const handleLogout = () => {
@@ -150,9 +225,22 @@ export default function SettingsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-6xl mx-auto flex items-center justify-center py-16">
+          <p className="text-sm text-muted-foreground">Loading account information...</p>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto">
+        {fetchError && (
+          <p className="text-sm text-red-500 mb-4">{fetchError}</p>
+        )}
         {/* <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1> */}
 
         <Tabs.Root defaultValue="account" orientation="vertical" className="w-full">
@@ -304,7 +392,11 @@ export default function SettingsPage() {
                       </div>
 
                       {saveMessage && (
-                        <p className="text-sm text-muted-foreground text-center">{saveMessage}</p>
+                        <p className="text-sm text-green-600 text-center">{saveMessage}</p>
+                      )}
+
+                      {saveError && (
+                        <p className="text-sm text-red-500 text-center">{saveError}</p>
                       )}
                     </form>
                   </CardContent>
