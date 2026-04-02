@@ -41,45 +41,68 @@ interface ReviewRequest {
 
 
 
+
 export default function Page() {
-  const router = useRouter()
-  const [requests, setRequests] = useState<ReviewRequest[]>([])
-  const [selected, setSelected] = useState<ReviewRequest | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [requests, setRequests] = useState<ReviewRequest[]>([]);
+  const [selected, setSelected] = useState<ReviewRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const REVIEWS_PER_PAGE = 6;
   const totalPages = Math.ceil(requests.length / REVIEWS_PER_PAGE);
   const paginatedRequests = requests.slice((page - 1) * REVIEWS_PER_PAGE, page * REVIEWS_PER_PAGE);
 
+  // Helper to transform API data to ReviewRequest[]
+  function transformRequests(data: any[]): ReviewRequest[] {
+    return (data || [])
+      .filter((r: any) => r.approved === "Unreviewed")
+      .map((r: any, idx: number) => ({
+        id: r.id || idx.toString(),
+        firstName: r.first_name,
+        lastName: r.last_name,
+        houseName: r.house_id,
+        email: r.email,
+        phone: r.phone,
+        pickupAddress: r.source_address,
+        destinationAddress: r.destination_address,
+        arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+        arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+        comments: r.request_comment,
+        status: r.approved,
+      }));
+  }
+
+  // Load from localStorage on mount, then fetch and refresh every 60s
   useEffect(() => {
-    fetchGetRequests("")
-      .then((res) => {
-        setRequests(
-          (res.data || [])
-            .filter((r: any) => r.approved === "Unreviewed")
-            .map((r: any, idx: number) => ({
-              id: r.id || idx.toString(),
-              firstName: r.first_name,
-              lastName: r.last_name,
-              houseName: r.house_id,
-              email: r.email,
-              phone: r.phone,
-              pickupAddress: r.source_address,
-              destinationAddress: r.destination_address,
-              arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
-              arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
-              comments: r.request_comment,
-              status: r.approved,
-            }))
-        );
-      })
-      .catch((err) => {
-        if (err.message && (err.message.includes("Session cookie missing") || err.message.includes("not authenticated") || err.message.includes("Cookie expired") || err.message.includes("Cookie not found"))) {
-          setError("You must be logged in to view requests.");
-        } else {
-          setError(err.message || "Failed to fetch requests");
-        }
-      });
+    // Try to load from localStorage first
+    const cached = localStorage.getItem("review_requests");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setRequests(transformRequests(parsed));
+      } catch {}
+    }
+
+    // Function to fetch and update cache
+    const fetchAndCache = () => {
+      fetchGetRequests("")
+        .then((res) => {
+          localStorage.setItem("review_requests", JSON.stringify(res.data || []));
+          setRequests(transformRequests(res.data));
+          setError(null);
+        })
+        .catch((err) => {
+          if (err.message && (err.message.includes("Session cookie missing") || err.message.includes("not authenticated") || err.message.includes("Cookie expired") || err.message.includes("Cookie not found"))) {
+            setError("You must be logged in to view requests.");
+          } else {
+            setError(err.message || "Failed to fetch requests");
+          }
+        });
+    };
+
+    fetchAndCache(); // Always fetch on mount
+    const interval = setInterval(fetchAndCache, 60000); // Refresh every 60s
+    return () => clearInterval(interval);
   }, []);
 
 
@@ -122,7 +145,7 @@ export default function Page() {
 
   return (
     <DashboardLayout>
-      <div className="w-full px-6 py-8">
+      <div className="flex-1 px-6 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-foreground">Incoming Transport Requests</h1>
@@ -201,7 +224,7 @@ export default function Page() {
               {selected.comments && <div><strong>Comments:</strong> {selected.comments}</div>}
               <div><strong>Status:</strong> {selected.status}</div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-5">
               <Button onClick={() => approve(selected.id)} className="flex-1">Approve</Button>
               <Button variant="ghost" onClick={() => reject(selected.id)} className="flex-1">Reject</Button>
             </div>
@@ -213,7 +236,6 @@ export default function Page() {
 }
 
 function formatTime(time: string) {
-  // Accepts 'YYYY-MM-DD HH:mm' or 'HH:mm' and returns 'h:mm AM/PM'
   const t = time.trim().split(" ").pop() || "";
   const [h, m] = t.split(":");
   if (!h || !m) return time;
@@ -224,7 +246,6 @@ function formatTime(time: string) {
 }
 
 function formatDate(date: string) {
-  // Accepts 'YYYY-MM-DD' and returns 'Month D, YYYY'
   if (!date) return "";
   const d = new Date(date);
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
