@@ -103,30 +103,51 @@ export default function CalendarPage() {
       }
       if (showApproveModal) fetchDrivers();
     }, [showApproveModal]);
+  // Helper to transform API data to ReviewRequest[]
+  function transformRequests(data: any[]): ReviewRequest[] {
+    return (data || [])
+      .map((r: any, idx: number) => ({
+        id: r.id || idx.toString(),
+        firstName: r.first_name,
+        lastName: r.last_name,
+        houseName: r.house_id,
+        email: r.email,
+        phone: r.phone,
+        pickupAddress: r.source_address,
+        destinationAddress: r.destination_address,
+        arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
+        arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
+        comments: r.request_comment,
+        status: r.approved,
+      }));
+  }
+
   useEffect(() => {
-    fetchGetRequests("")
-      .then((res) => {
-        setRequests(
-          (res.data || [])
-            .map((r: any, idx: number) => ({
-              id: r.id || idx.toString(),
-              firstName: r.first_name,
-              lastName: r.last_name,
-              houseName: r.house_id,
-              email: r.email,
-              phone: r.phone,
-              pickupAddress: r.source_address,
-              destinationAddress: r.destination_address,
-              arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
-              arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
-              comments: r.request_comment,
-              status: r.approved,
-            }))
-        );
-      })
-      .catch((err) => {
-        setRequestError(err.message || "Failed to fetch requests");
-      });
+    // Load from localStorage first
+    const cached = localStorage.getItem("calendar_requests");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setRequests(transformRequests(parsed));
+      } catch {}
+    }
+
+    // Fetch and cache function
+    const fetchAndCache = () => {
+      fetchGetRequests("")
+        .then((res) => {
+          localStorage.setItem("calendar_requests", JSON.stringify(res.data || []));
+          setRequests(transformRequests(res.data));
+          setRequestError(null);
+        })
+        .catch((err) => {
+          setRequestError(err.message || "Failed to fetch requests");
+        });
+    };
+
+    fetchAndCache();
+    const interval = setInterval(fetchAndCache, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = () => {

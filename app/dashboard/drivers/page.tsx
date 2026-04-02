@@ -30,7 +30,17 @@ export default function DriversPage() {
   const paginatedDrivers = driversList.slice((page - 1) * DRIVERS_PER_PAGE, page * DRIVERS_PER_PAGE);
 
   useEffect(() => {
-    async function fetchDrivers() {
+    // Load from localStorage first
+    const cached = localStorage.getItem("drivers_list");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setDriversList(parsed);
+      } catch {}
+    }
+
+    // Fetch and cache function
+    const fetchAndCache = async () => {
       try {
         const res = await fetch("https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/get-drivers", {
           method: "GET",
@@ -42,13 +52,17 @@ export default function DriversPage() {
         });
         const data = await res.json();
         if (data.valid && Array.isArray(data.data)) {
+          localStorage.setItem("drivers_list", JSON.stringify(data.data));
           setDriversList(data.data);
         }
       } catch (err) {
         // Optionally handle error
       }
-    }
-    fetchDrivers();
+    };
+
+    fetchAndCache();
+    const interval = setInterval(fetchAndCache, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
