@@ -56,7 +56,7 @@ export default function DriversPage() {
           setDriversList(data.data);
         }
       } catch (err) {
-        // Optionally handle error
+        //
       }
     };
 

@@ -36,17 +36,7 @@ import { getWeekDates } from '@/lib/events'
 
 
 
-// Event type for calendar
-interface CalendarEvent {
-  id: string;
-  title: string;
-  driver?: string;
-  description?: string;
-  location?: string;
-  passengers?: string;
-  notes?: string;
-  hour: number;
-}
+
 
 export default function CalendarPage() {
     // Helper to get hour index from arrivalTime string (e.g., '14:00' or '2 PM')
@@ -491,4 +481,15 @@ export default function CalendarPage() {
 
     </DashboardLayout>
   );
+}
+// Event type for calendar
+interface CalendarEvent {
+  id: string;
+  title: string;
+  driver?: string;
+  description?: string;
+  location?: string;
+  passengers?: string;
+  notes?: string;
+  hour: number;
 }

@@ -124,7 +124,7 @@ function CalendarWidget() {
   );
 }
 
-// Recent Activity Widget Component (placeholder)
+// Recent Activity Widget Component
 function RecentActivityWidget() {
   // Placeholder data
   const activities = [
