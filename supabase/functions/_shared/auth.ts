@@ -25,8 +25,13 @@ type CorsResult =
 // Helper function to create cors headers and also handle the preflight case of cors checking.
 // This can be called directly in cases of functions that do not use the cookie format.
 export function handleCors(req: Request): CorsResult {
+  const allowed_domains = ["https://v0-transportation-service-demo.vercel.app", "https://localhost:3000"]
+
+  const origin = req.headers.get("origin") ?? "";
+  const allowed_origin = allowed_domains.includes(origin) ? origin : "";
+
   const headers = {
-    "Access-Control-Allow-Origin": "https://v0-transportation-service-demo.vercel.app",
+    "Access-Control-Allow-Origin": allowed_origin,
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
