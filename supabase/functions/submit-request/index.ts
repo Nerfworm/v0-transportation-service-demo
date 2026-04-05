@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { handleCors } from '../_shared/auth.ts'
+import { handleCors, ROLE } from '../_shared/auth.ts'
+import { notifyRole } from '../_shared/notify.ts'
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -67,6 +68,16 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Failed to create request" }),
         { status: 500, headers }
       );
+    }
+
+    try {
+      await notifyRole(
+        ROLE.REVIEWER,
+        "Request submitted by " + firstName + " " + lastName,
+        firstName + " " + lastName + " submitted a transportation request to get to " + destinationAddress + "."
+      );
+    } catch (err) {
+      console.error("Warning: Failed to create notification!", err);
     }
 
     return new Response(

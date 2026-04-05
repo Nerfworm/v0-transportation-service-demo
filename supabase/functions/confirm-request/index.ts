@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { authenticate, ROLE } from '../_shared/auth.ts'
+import { notifyRole, notifyAccount } from '../_shared/notify.ts'
 
 const ALLOWED_STATES: Partial<Record<number, string[]>> = {
   [ROLE.ADMIN]: ["Denied", "Pending", "Approved"],
@@ -50,7 +51,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: existingRequestData, error: existingRequestError } = await supabase
     .from("request")
-    .select("approved")
+    .select("first_name, last_name, destination_address, approved")
     .eq("id", requestId)
     .single();
 
@@ -146,6 +147,30 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: requestError.message }),
         { status: 500, headers }
       );
+    }
+
+    if (newState === "Pending") {
+      try {
+        await notifyRole(
+          ROLE.TRANSPORTATION_COORDINATOR,
+          "Request pending for " + existingRequestData.first_name + " " + existingRequestData.last_name,
+          "A request for " + existingRequestData.first_name + " " + existingRequestData.last_name + " to get to " + existingRequestData.destination_address + " is now pending final approval."
+        );
+      } catch (err) {
+        console.error("Warning: Failed to create notification!", err);
+      }
+    }
+
+    if (newState === "Approved") {
+      try {
+        await notifyAccount(
+          driver,
+          "New transport assigned",
+          "You have been assigned to transport " + existingRequestData.first_name + " " + existingRequestData.last_name + " to " + existingRequestData.destination_address + ". Please check your calendar."
+        );
+      } catch (err) {
+        console.error("Warning: Failed to create notification!", err);
+      }
     }
 
     return new Response(
