@@ -40,6 +40,8 @@ Deno.serve(async (req: Request) => {
     const { error } = await query;
 
     if (error) {
+      console.log("Error while marking notifications as read: ", error)
+
       return new Response(
         JSON.stringify({ error: "Failed to mark notifications as read" }),
         { status: 500, headers }
