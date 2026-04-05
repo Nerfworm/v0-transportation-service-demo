@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
     }
 
     let query = supabase
-    .from("notifications")
+    .from("notification")
     .update({ read_at: new Date().toISOString() })
     .eq("recipient", account.id)
     .is("read_at", null);
