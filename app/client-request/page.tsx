@@ -82,7 +82,7 @@ export default function ClientRequestPage() {
             "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify(submitData),
-          credentials: "include", // important if function sets cookies
+          credentials: "include", 
         }
       );
 

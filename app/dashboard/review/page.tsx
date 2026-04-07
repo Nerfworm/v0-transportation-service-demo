@@ -11,13 +11,16 @@ import DashboardLayout from '@/components/DashboardLayout'
 
 import { fetchGetRequests } from "@/lib/edgeClient"
 
-// Add a client function to call the edge function for updating request status
-async function setRequestPending(requestId: string) {
-  const res = await fetch("/api/review-update-request", {
-    method: "POST",
+
+// Call Supabase Edge Function to update request state
+async function updateRequestState({ requestId, newState, reason }: { requestId: string, newState: string, reason?: string }) {
+  // Replace with your actual Supabase project URL if needed
+  const url = "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/confirm-request";
+  const res = await fetch(url, {
+    method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId }),
+    body: JSON.stringify({ requestId, newState, reason }),
   });
   return res.json();
 }
@@ -106,10 +109,11 @@ export default function Page() {
   }, []);
 
 
+
   const approve = async (id: string) => {
     try {
-      const res = await setRequestPending(id);
-      if (res.ok) {
+      const res = await updateRequestState({ requestId: id, newState: "Pending" });
+      if (res.valid) {
         setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "pending" } : r)));
         setSelected(null);
       } else {
@@ -120,9 +124,19 @@ export default function Page() {
     }
   }
 
-  const reject = (id: string) => {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)))
-    setSelected(null)
+
+  const reject = async (id: string) => {
+    try {
+      const res = await updateRequestState({ requestId: id, newState: "Denied" });
+      if (res.valid) {
+        setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
+        setSelected(null);
+      } else {
+        setError(res.error || "Failed to update status");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to update status");
+    }
   }
 
   function formatTime(time: string) {
@@ -145,12 +159,12 @@ export default function Page() {
 
   return (
     <DashboardLayout>
-      <div className="flex-1 px-6 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-foreground">Incoming Transport Requests</h1>
-          </div>
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Incoming Transport Requests</h1>
+        </div>
 
+        <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {error ? (
               <div className="col-span-full text-center text-red-600 py-8">{error}</div>
