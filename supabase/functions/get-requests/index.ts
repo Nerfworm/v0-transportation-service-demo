@@ -29,6 +29,7 @@ Deno.serve(async (req: Request) => {
   let query = supabase
   .from("request")
   .select(`
+    id,
     first_name,
     last_name,
     house_id,

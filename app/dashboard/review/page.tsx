@@ -1,30 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Users, Calendar, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
 
-import { fetchGetRequests } from "@/lib/edgeClient"
-
-
-// Call Supabase Edge Function to update request state
-async function updateRequestState({ requestId, newState, reason }: { requestId: string, newState: string, reason?: string }) {
-  // Replace with your actual Supabase project URL if needed
-  const url = "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/confirm-request";
-  const res = await fetch(url, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, newState, reason }),
-  });
-  return res.json();
-}
-
+import { fetchGetRequests, fetchConfirmRequest  } from "@/lib/edgeClient"
 
 interface ReviewRequest {
   id: string
@@ -46,7 +29,6 @@ interface ReviewRequest {
 
 
 export default function Page() {
-  const router = useRouter();
   const [requests, setRequests] = useState<ReviewRequest[]>([]);
   const [selected, setSelected] = useState<ReviewRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,35 +92,34 @@ export default function Page() {
 
 
 
-  const approve = async (id: string) => {
-    try {
-      const res = await updateRequestState({ requestId: id, newState: "Pending" });
-      if (res.valid) {
-        setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "pending" } : r)));
-        setSelected(null);
-      } else {
-        setError(res.error || "Failed to update status");
-      }
-    } catch (err: any) {
-      setError(err?.message || "Failed to update status");
+const approve = async (id: string) => {
+  console.log("Approving request with id:", id);
+  try {
+    const res = await fetchConfirmRequest(id, "Pending");
+    if (res.valid) {
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      setSelected(null);
+    } else {
+      setError(res.error || "Failed to update status");
     }
+  } catch (err: any) {
+    setError(err?.message || "Failed to update status");
   }
+}
 
-
-  const reject = async (id: string) => {
-    try {
-      const res = await updateRequestState({ requestId: id, newState: "Denied" });
-      if (res.valid) {
-        setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
-        setSelected(null);
-      } else {
-        setError(res.error || "Failed to update status");
-      }
-    } catch (err: any) {
-      setError(err?.message || "Failed to update status");
+const reject = async (id: string) => {
+  try {
+    const res = await fetchConfirmRequest(id, "Denied");
+    if (res.valid) {
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      setSelected(null);
+    } else {
+      setError(res.error || "Failed to update status");
     }
+  } catch (err: any) {
+    setError(err?.message || "Failed to update status");
   }
-
+}
   function formatTime(time: string) {
     // Accepts 'YYYY-MM-DD HH:mm' or 'HH:mm' and returns 'h:mm AM/PM'
     const t = time.trim().split(" ").pop() || "";
@@ -247,20 +228,4 @@ export default function Page() {
       )}
     </DashboardLayout>
   );
-}
-
-function formatTime(time: string) {
-  const t = time.trim().split(" ").pop() || "";
-  const [h, m] = t.split(":");
-  if (!h || !m) return time;
-  const hour = parseInt(h, 10);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
-  return `${hour12}:${m} ${ampm}`;
-}
-
-function formatDate(date: string) {
-  if (!date) return "";
-  const d = new Date(date);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 }

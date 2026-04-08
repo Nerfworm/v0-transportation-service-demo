@@ -1,7 +1,34 @@
 "use client"
 
+
+
+import { Bus, ChevronLeft, ChevronRight, Calendar, Users, Bell } from "lucide-react"
+import DashboardLayout from '@/components/DashboardLayout'
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
-import { fetchGetRequests } from "@/lib/edgeClient"
+import { fetchGetRequests, fetchConfirmRequest } from "@/lib/edgeClient"
+import { getWeekDates } from '@/lib/events'
+
+// Centralized driver fetch
+async function fetchGetDrivers() {
+  const BASE_URL = "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1";
+  const res = await fetch(`${BASE_URL}/get-drivers`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+    },
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to fetch drivers");
+  return data;
+}
+
+
 interface ReviewRequest {
   id: string
   firstName: string
@@ -17,28 +44,69 @@ interface ReviewRequest {
   status?: string
 }
 
-import { Bus, ChevronLeft, ChevronRight, Calendar, Users, Bell } from "lucide-react"
-import DashboardLayout from '@/components/DashboardLayout'
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 const HOURS = [
   "12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM",
   "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM"
 ]
 
-
-
-import { getWeekDates } from '@/lib/events'
-
-
-
-
-
 export default function CalendarPage() {
+        const [pickupTime, setPickupTime] = useState("");
+        const [dropoffTime, setDropoffTime] = useState("");
+      // Approve handler
+  async function handleApprove() {
+    if (!selectedRequest || !selectedDriver || !vehicle || !pickupTime || !dropoffTime) return;
+    console.log("submitting approval:", {  
+    requestId: selectedRequest.id,
+    driver: selectedDriver.id,
+    vehicle,
+    pickupTime,
+    dropoffTime
+  });
+    try {
+      const fullPickupTime = `${selectedRequest.arrivalDate}T${pickupTime}:00Z`;
+      const fullDropoffTime = `${selectedRequest.arrivalDate}T${dropoffTime}:00Z`;
+      const res = await fetchConfirmRequest(
+        selectedRequest.id,
+        "Approved",
+        undefined,
+        selectedDriver.id,
+        vehicle,
+        fullPickupTime,
+        fullDropoffTime
+      );
+      setShowApproveModal(false);
+      setSelectedRequest(null);
+      setVehicle("");
+      setSelectedDriver(null);
+      setRequestError(null);
+      fetchGetRequests("").then((res) => {
+        setRequests(transformRequests(res.data));
+      });
+    } catch (err: any) {
+      setRequestError(err.message || "Failed to approve request");
+    }
+  }
+
+  async function handleReject() {
+    if (!selectedRequest || !rejectReason) return;
+    try {
+      const res = await fetchConfirmRequest(
+        selectedRequest.id,
+        "Denied",
+        rejectReason
+      );
+      setShowRejectModal(false);
+      setSelectedRequest(null);
+      setRejectReason("");
+      setRequestError(null);
+      fetchGetRequests("").then((res) => {
+        setRequests(transformRequests(res.data));
+      });
+    } catch (err: any) {
+      setRequestError(err.message || "Failed to reject request");
+    }
+  }
     // Helper to get hour index from arrivalTime string (e.g., '14:00' or '2 PM')
     function getHourIndex(arrivalTime: string) {
       if (!arrivalTime) return -1;
@@ -72,20 +140,14 @@ export default function CalendarPage() {
   const [driversList, setDriversList] = useState<any[]>([]);
   const [driverSearch, setDriverSearch] = useState("");
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [showDriverDropdown, setShowDriverDropdown] = useState(false);
   const [vehicle, setVehicle] = useState("");
     // Fetch drivers for approve modal
     useEffect(() => {
       async function fetchDrivers() {
         try {
-          const res = await fetch("https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/get-drivers", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            },
-            credentials: "include"
-          });
-          const data = await res.json();
+          const data = await fetchGetDrivers();
+          console.log("drivers data:", data.data);
           if (data.valid && Array.isArray(data.data)) {
             setDriversList(data.data);
           }
@@ -96,20 +158,31 @@ export default function CalendarPage() {
   // Helper to transform API data to ReviewRequest[]
   function transformRequests(data: any[]): ReviewRequest[] {
     return (data || [])
-      .map((r: any, idx: number) => ({
-        id: r.id || idx.toString(),
-        firstName: r.first_name,
-        lastName: r.last_name,
-        houseName: r.house_id,
-        email: r.email,
-        phone: r.phone,
-        pickupAddress: r.source_address,
-        destinationAddress: r.destination_address,
-        arrivalDate: r.requested_dropoff_time?.split(" ")[0] || "",
-        arrivalTime: r.requested_dropoff_time?.split(" ")[1] || "",
-        comments: r.request_comment,
-        status: r.approved,
-      }));
+      .map((r: any, idx: number) => {
+        let arrivalDate = "";
+        let arrivalTime = "";
+        if (r.requested_dropoff_time) {
+          const d = new Date(r.requested_dropoff_time);
+          if (!isNaN(d.getTime())) {
+            arrivalDate = d.toISOString().split("T")[0];
+            arrivalTime = d.toISOString().split("T")[1].slice(0, 5);
+          }
+        }
+        return {
+          id: r.id || idx.toString(),
+          firstName: r.first_name,
+          lastName: r.last_name,
+          houseName: r.house_id,
+          email: r.email,
+          phone: r.phone,
+          pickupAddress: r.source_address,
+          destinationAddress: r.destination_address,
+          arrivalDate,
+          arrivalTime,
+          comments: r.request_comment,
+          status: r.approved,
+        };
+      });
   }
 
   useEffect(() => {
@@ -204,9 +277,9 @@ export default function CalendarPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Drivers</SelectItem>
-                  <SelectItem value="john">John</SelectItem>
-                  <SelectItem value="jane">Jane</SelectItem>
-                  <SelectItem value="mike">Mike</SelectItem>
+                  {driversList.map((d, idx) => (
+                    <SelectItem key={d.supabase_uid ?? idx} value={d.supabase_uid ?? idx.toString()}>{d.first_name} {d.last_name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -338,32 +411,44 @@ export default function CalendarPage() {
                                           type="text"
                                           className="w-full border rounded p-2 mb-1"
                                           placeholder="Search driver by name..."
-                                          value={driverSearch}
+                                          value={selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : driverSearch}
                                           onChange={e => {
                                             setDriverSearch(e.target.value);
                                             setSelectedDriver(null);
+                                            setShowDriverDropdown(true);
+                                          }}
+                                          onFocus={() => setShowDriverDropdown(true)}
+                                          onBlur={e => {
+                                            // Delay hiding dropdown to allow click selection
+                                            setTimeout(() => setShowDriverDropdown(false), 100);
                                           }}
                                         />
-                                        <div className="border rounded bg-white max-h-32 overflow-y-auto shadow-md">
-                                          {driversList
-                                            .filter(d =>
-                                              (d.first_name + " " + d.last_name).toLowerCase().includes(driverSearch.toLowerCase())
-                                            )
-                                            .map(d => (
-                                              <div
-                                                key={d.supabase_uid}
-                                                className={`px-3 py-2 cursor-pointer transition-colors
-                                                  ${selectedDriver?.supabase_uid === d.supabase_uid ? 'bg-gray-200 text-gray-900 font-semibold' : 'bg-white text-gray-900'}
-                                                  hover:bg-gray-100 hover:text-black`}
-                                                onClick={() => setSelectedDriver(d)}
-                                              >
-                                                {d.first_name} {d.last_name}
-                                              </div>
-                                            ))}
+                                        <div className="relative">
+                                          {showDriverDropdown && (
+                                            <div className="border rounded bg-white max-h-40 overflow-y-auto shadow-md w-full mt-1" style={{position: 'relative'}}>
+                                              {driversList
+                                                .filter(d =>
+                                                  (d.first_name + " " + d.last_name).toLowerCase().includes(driverSearch.toLowerCase())
+                                                )
+                                                .map(d => (
+                                                  <div
+                                                    key={d.supabase_uid}
+                                                    className={`px-3 py-2 cursor-pointer transition-colors
+                                                      ${selectedDriver?.supabase_uid === d.supabase_uid ? 'bg-gray-200 text-gray-900 font-semibold' : 'bg-white text-gray-900'}
+                                                      hover:bg-gray-100 hover:text-black`}
+                                                    onMouseDown={e => {
+                                                      e.preventDefault();
+                                                      setSelectedDriver(d);
+                                                      setDriverSearch(`${d.first_name} ${d.last_name}`);
+                                                      setShowDriverDropdown(false);
+                                                    }}
+                                                  >
+                                                    {d.first_name} {d.last_name}
+                                                  </div>
+                                                ))}
+                                            </div>
+                                          )}
                                         </div>
-                                        {selectedDriver && (
-                                          <div className="mt-1 text-xs text-muted-foreground">Selected: {selectedDriver.first_name} {selectedDriver.last_name}</div>
-                                        )}
                                       </div>
                                       <div className="mb-4">
                                         <label className="block text-sm font-semibold mb-1">Vehicle</label>
@@ -375,8 +460,26 @@ export default function CalendarPage() {
                                           onChange={e => setVehicle(e.target.value)}
                                         />
                                       </div>
+                                      <div className="mb-4">
+                                        <label className="block text-sm font-semibold mb-1">Pickup Time</label>
+                                        <input
+                                          type="time"
+                                          className="w-full border rounded p-2"
+                                          value={pickupTime}
+                                          onChange={e => setPickupTime(e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="mb-4">
+                                        <label className="block text-sm font-semibold mb-1">Dropoff Time</label>
+                                        <input
+                                          type="time"
+                                          className="w-full border rounded p-2"
+                                          value={dropoffTime}
+                                          onChange={e => setDropoffTime(e.target.value)}
+                                        />
+                                      </div>
                                       <div className="flex gap-3 mt-4">
-                                        <Button className="flex-1" onClick={() => setShowApproveModal(false)}>Submit</Button>
+                                        <Button className="flex-1" onClick={handleApprove}>Submit</Button>
                                         <Button variant="ghost" className="flex-1" onClick={() => setShowApproveModal(false)}>Cancel</Button>
                                       </div>
                                     </div>
@@ -402,7 +505,7 @@ export default function CalendarPage() {
                     onChange={e => setRejectReason(e.target.value)}
                   />
                   <div className="flex gap-3 mt-4">
-                    <Button className="flex-1" onClick={() => setShowRejectModal(false)}>Submit</Button>
+                    <Button className="flex-1" onClick={handleReject}>Submit</Button>
                     <Button variant="ghost" className="flex-1" onClick={() => setShowRejectModal(false)}>Cancel</Button>
                   </div>
                 </div>

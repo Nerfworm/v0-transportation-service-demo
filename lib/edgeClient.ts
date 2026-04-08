@@ -44,3 +44,34 @@ export async function markNotificationsRead(ids: number[]) {
   if (!res.ok) throw new Error(data.error || "Failed to mark notifications read");
   return data;
 }
+
+export async function fetchConfirmRequest(
+  requestId: string,
+  newState: string,
+  reason?: string,
+  driver?: string,
+  vehicle?: string,
+  pickupTime?: string,
+  dropoffTime?: string
+) {
+  const res = await fetch(`${BASE_URL}/confirm-request`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      requestId,
+      newState,
+      reason,
+      driver,
+      vehicle,
+      pickupTime,
+      dropoffTime,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update request state");
+  return data;
+}
