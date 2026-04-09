@@ -25,6 +25,7 @@ async function fetchGetDrivers() {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to fetch drivers");
+  console.log("first driver object:", JSON.stringify(data.data[0]));
   return data;
 }
 
@@ -55,10 +56,11 @@ export default function CalendarPage() {
         const [dropoffTime, setDropoffTime] = useState("");
       // Approve handler
   async function handleApprove() {
+    console.log("selectedDriver full object:", JSON.stringify(selectedDriver));
     if (!selectedRequest || !selectedDriver || !vehicle || !pickupTime || !dropoffTime) return;
     console.log("submitting approval:", {  
     requestId: selectedRequest.id,
-    driver: selectedDriver.id,
+    driver: selectedDriver.supabase_uid,
     vehicle,
     pickupTime,
     dropoffTime
@@ -70,7 +72,7 @@ export default function CalendarPage() {
         selectedRequest.id,
         "Approved",
         undefined,
-        selectedDriver.id,
+        selectedDriver.supabase_uid,
         vehicle,
         fullPickupTime,
         fullDropoffTime

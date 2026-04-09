@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: drivers, error: driverError } = await supabase
   .from("account")
-  .select("first_name, last_name, phone, supabase_uid")
+  .select("id, first_name, last_name, phone, supabase_uid")
   .eq("role_id", ROLE.TRANSPORTER);
 
   if (driverError) {
@@ -48,9 +48,9 @@ Deno.serve(async (req: Request) => {
 
   const authMap = new Map(authUsers.users.map(u => [u.id, u.email]));
 
-  const driversWithEmail = drivers.map(({ supabase_uid, ...driver }) => ({
+  const driversWithEmail = drivers.map((driver) => ({
     ...driver,
-    email: authMap.get(supabase_uid) ?? null
+    email: authMap.get(driver.supabase_uid) ?? null
   }));
 
   return new Response(
