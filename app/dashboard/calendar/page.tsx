@@ -60,7 +60,7 @@ export default function CalendarPage() {
     if (!selectedRequest || !selectedDriver || !vehicle || !pickupTime || !dropoffTime) return;
     console.log("submitting approval:", {  
     requestId: selectedRequest.id,
-    driver: selectedDriver.supabase_uid,
+    driver: selectedDriver.id,
     vehicle,
     pickupTime,
     dropoffTime
@@ -72,7 +72,7 @@ export default function CalendarPage() {
         selectedRequest.id,
         "Approved",
         undefined,
-        selectedDriver.supabase_uid,
+        selectedDriver.id,
         vehicle,
         fullPickupTime,
         fullDropoffTime
