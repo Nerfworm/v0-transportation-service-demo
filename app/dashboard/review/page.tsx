@@ -141,9 +141,7 @@ const reject = async (id: string) => {
   return (
     <DashboardLayout>
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Incoming Transport Requests</h1>
-        </div>
+        {/* Removed Incoming Transport Requests title header */}
 
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

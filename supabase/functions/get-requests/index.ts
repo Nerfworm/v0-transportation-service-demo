@@ -46,7 +46,9 @@ Deno.serve(async (req: Request) => {
         first_name,
         last_name
       ),
-      vehicle
+      vehicle,
+      pickup_time,
+      dropoff_time
     )
   `);
 

@@ -43,6 +43,15 @@ interface ReviewRequest {
   arrivalTime: string
   comments?: string
   status?: string
+  transport?: {
+    pickup_time?: string;
+    dropoff_time?: string;
+    vehicle?: string;
+    account?: {
+      first_name?: string;
+      last_name?: string;
+    };
+  };
 }
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
@@ -52,6 +61,18 @@ const HOURS = [
 ]
 
 export default function CalendarPage() {
+          // Helper to format time as 12-hour with AM/PM
+          function formatTime12h(time: string) {
+            if (!time) return '';
+            const [h, m] = time.split(":");
+            if (h === undefined || m === undefined) return time;
+            let hour = parseInt(h, 10);
+            const minute = m;
+            if (isNaN(hour)) return time;
+            const ampm = hour >= 12 ? "PM" : "AM";
+            hour = hour % 12 === 0 ? 12 : hour % 12;
+            return `${hour}:${minute} ${ampm}`;
+          }
         const [pickupTime, setPickupTime] = useState("");
         const [dropoffTime, setDropoffTime] = useState("");
       // Approve handler
@@ -135,6 +156,7 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [requests, setRequests] = useState<ReviewRequest[]>([])
   const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null)
+  const [showEventInfoModal, setShowEventInfoModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [requestError, setRequestError] = useState<string | null>(null)
@@ -164,11 +186,13 @@ export default function CalendarPage() {
         let arrivalDate = "";
         let arrivalTime = "";
         if (r.requested_dropoff_time) {
-          const d = new Date(r.requested_dropoff_time);
-          if (!isNaN(d.getTime())) {
-            arrivalDate = d.toISOString().split("T")[0];
-            arrivalTime = d.toISOString().split("T")[1].slice(0, 5);
-          }
+          const date = new Date(r.requested_dropoff_time);
+          arrivalDate = date.toLocaleDateString('en-CA'); // yyyy-mm-dd in local time
+          arrivalTime = date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }); // HH:mm in local time
         }
         return {
           id: r.id || idx.toString(),
@@ -183,6 +207,7 @@ export default function CalendarPage() {
           arrivalTime,
           comments: r.request_comment,
           status: r.approved,
+          transport: r.transport,
         };
       });
   }
@@ -331,10 +356,10 @@ export default function CalendarPage() {
                         {approvedRequests.length > 0 && approvedRequests.map((ar, idx) => (
                           <div
                             key={ar.id}
-                            className="bg-green-200 text-green-900 rounded px-2 py-1 text-xs font-semibold shadow mb-1"
-                            onClick={() => setSelectedRequest(ar)}
+                            className="bg-primary/20 text-primary rounded px-2 py-1 text-xs font-semibold shadow mb-1 border border-primary/40"
+                            onClick={() => { setSelectedRequest(ar); setShowEventInfoModal(true); }}
                           >
-                            {ar.firstName} {ar.lastName} <span className="font-normal">({ar.arrivalTime})</span>
+                            {ar.firstName} {ar.lastName} <span className="font-normal">({formatTime12h(ar.arrivalTime)})</span>
                           </div>
                         ))}
                       </div>
@@ -369,7 +394,7 @@ export default function CalendarPage() {
                   }
                 }
                 return (
-                  <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => setSelectedRequest(r)}>
+                  <li key={r.id} className="py-4 cursor-pointer hover:bg-muted/50 px-2 rounded transition-colors" onClick={() => { setSelectedRequest(r); setShowEventInfoModal(false); }}>
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-lg">{r.firstName} {r.lastName}</span>
                       <span className="text-sm text-muted-foreground">{formattedDate} {formattedTime}</span>
@@ -381,7 +406,48 @@ export default function CalendarPage() {
           )}
         </div>
             {/* Request Details Modal */}
-            {selectedRequest && (
+            {/* Info-only modal for calendar event click */}
+            {selectedRequest && showEventInfoModal && (
+              <>
+                <div className="fixed inset-0 bg-black/50 z-40" onClick={() => { setSelectedRequest(null); setShowEventInfoModal(false); }} />
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                  <button onClick={() => { setSelectedRequest(null); setShowEventInfoModal(false); }} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                  <h2 className="text-xl font-bold mb-2">{selectedRequest.firstName} {selectedRequest.lastName}</h2>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>House Name:</strong> {selectedRequest.houseName}</div>
+                    {selectedRequest.email && <div><strong>Email:</strong> {selectedRequest.email}</div>}
+                    {selectedRequest.phone && <div><strong>Phone:</strong> {selectedRequest.phone}</div>}
+                    <div><strong>Pickup Address:</strong> {selectedRequest.pickupAddress}</div>
+                    <div><strong>Destination Address:</strong> {selectedRequest.destinationAddress}</div>
+                    <div><strong>Date of Arrival:</strong> {selectedRequest.arrivalDate}</div>
+                    <div><strong>Arrival Time:</strong> {formatTime12h(selectedRequest.arrivalTime)}</div>
+                    {/* Show transport details if available */}
+                    {selectedRequest.transport && (
+                      <>
+                        {selectedRequest.transport.pickup_time && (
+                          <div><strong>Pickup Time:</strong> {formatTime12h(
+                            new Date(selectedRequest.transport.pickup_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                          )}</div>
+                        )}
+                        {selectedRequest.transport.dropoff_time && (
+                          <div><strong>Dropoff Time:</strong> {formatTime12h(
+                            new Date(selectedRequest.transport.dropoff_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                          )}</div>
+                        )}
+                        {selectedRequest.transport.vehicle && <div><strong>Vehicle:</strong> {selectedRequest.transport.vehicle}</div>}
+                        {selectedRequest.transport.account && (
+                          <div><strong>Driver:</strong> {selectedRequest.transport.account.first_name} {selectedRequest.transport.account.last_name}</div>
+                        )}
+                      </>
+                    )}
+                    {selectedRequest.comments && <div><strong>Comments:</strong> {selectedRequest.comments}</div>}
+                    <div><strong>Status:</strong> {selectedRequest.status}</div>
+                  </div>
+                </div>
+              </>
+            )}
+            {/* Original modal for requests sidebar (with approve/reject) */}
+            {selectedRequest && !showEventInfoModal && (
               <>
                 <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedRequest(null)} />
                 <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
@@ -400,93 +466,93 @@ export default function CalendarPage() {
                   </div>
                   <div className="flex gap-3 mt-6">
                     <Button className="flex-1" onClick={() => setShowApproveModal(true)}>Approve</Button>
-                                {/* Approve Modal */}
-                                {showApproveModal && (
-                                  <>
-                                    <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowApproveModal(false)} />
-                                    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
-                                      <button onClick={() => setShowApproveModal(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
-                                      <h2 className="text-xl font-bold mb-4">Assign Driver & Vehicle</h2>
-                                      <div className="mb-4">
-                                        <label className="block text-sm font-semibold mb-1">Driver</label>
-                                        <input
-                                          type="text"
-                                          className="w-full border rounded p-2 mb-1"
-                                          placeholder="Search driver by name..."
-                                          value={selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : driverSearch}
-                                          onChange={e => {
-                                            setDriverSearch(e.target.value);
-                                            setSelectedDriver(null);
-                                            setShowDriverDropdown(true);
-                                          }}
-                                          onFocus={() => setShowDriverDropdown(true)}
-                                          onBlur={e => {
-                                            // Delay hiding dropdown to allow click selection
-                                            setTimeout(() => setShowDriverDropdown(false), 100);
-                                          }}
-                                        />
-                                        <div className="relative">
-                                          {showDriverDropdown && (
-                                            <div className="border rounded bg-white max-h-40 overflow-y-auto shadow-md w-full mt-1" style={{position: 'relative'}}>
-                                              {driversList
-                                                .filter(d =>
-                                                  (d.first_name + " " + d.last_name).toLowerCase().includes(driverSearch.toLowerCase())
-                                                )
-                                                .map(d => (
-                                                  <div
-                                                    key={d.supabase_uid}
-                                                    className={`px-3 py-2 cursor-pointer transition-colors
-                                                      ${selectedDriver?.supabase_uid === d.supabase_uid ? 'bg-gray-200 text-gray-900 font-semibold' : 'bg-white text-gray-900'}
-                                                      hover:bg-gray-100 hover:text-black`}
-                                                    onMouseDown={e => {
-                                                      e.preventDefault();
-                                                      setSelectedDriver(d);
-                                                      setDriverSearch(`${d.first_name} ${d.last_name}`);
-                                                      setShowDriverDropdown(false);
-                                                    }}
-                                                  >
-                                                    {d.first_name} {d.last_name}
-                                                  </div>
-                                                ))}
-                                            </div>
-                                          )}
-                                        </div>
+                    {/* Approve Modal and Reject Modal remain unchanged */}
+                    {showApproveModal && (
+                      <>
+                        <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowApproveModal(false)} />
+                        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-96 max-w-[90vw] p-6">
+                          <button onClick={() => setShowApproveModal(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                          <h2 className="text-xl font-bold mb-4">Assign Driver & Vehicle</h2>
+                          <div className="mb-4">
+                            <label className="block text-sm font-semibold mb-1">Driver</label>
+                            <input
+                              type="text"
+                              className="w-full border rounded p-2 mb-1"
+                              placeholder="Search driver by name..."
+                              value={selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : driverSearch}
+                              onChange={e => {
+                                setDriverSearch(e.target.value);
+                                setSelectedDriver(null);
+                                setShowDriverDropdown(true);
+                              }}
+                              onFocus={() => setShowDriverDropdown(true)}
+                              onBlur={e => {
+                                // Delay hiding dropdown to allow click selection
+                                setTimeout(() => setShowDriverDropdown(false), 100);
+                              }}
+                            />
+                            <div className="relative">
+                              {showDriverDropdown && (
+                                <div className="border rounded bg-white max-h-40 overflow-y-auto shadow-md w-full mt-1" style={{position: 'relative'}}>
+                                  {driversList
+                                    .filter(d =>
+                                      (d.first_name + " " + d.last_name).toLowerCase().includes(driverSearch.toLowerCase())
+                                    )
+                                    .map(d => (
+                                      <div
+                                        key={d.supabase_uid}
+                                        className={`px-3 py-2 cursor-pointer transition-colors
+                                          ${selectedDriver?.supabase_uid === d.supabase_uid ? 'bg-gray-200 text-gray-900 font-semibold' : 'bg-white text-gray-900'}
+                                          hover:bg-gray-100 hover:text-black`}
+                                        onMouseDown={e => {
+                                          e.preventDefault();
+                                          setSelectedDriver(d);
+                                          setDriverSearch(`${d.first_name} ${d.last_name}`);
+                                          setShowDriverDropdown(false);
+                                        }}
+                                      >
+                                        {d.first_name} {d.last_name}
                                       </div>
-                                      <div className="mb-4">
-                                        <label className="block text-sm font-semibold mb-1">Vehicle</label>
-                                        <input
-                                          type="text"
-                                          className="w-full border rounded p-2"
-                                          placeholder="Enter vehicle..."
-                                          value={vehicle}
-                                          onChange={e => setVehicle(e.target.value)}
-                                        />
-                                      </div>
-                                      <div className="mb-4">
-                                        <label className="block text-sm font-semibold mb-1">Pickup Time</label>
-                                        <input
-                                          type="time"
-                                          className="w-full border rounded p-2"
-                                          value={pickupTime}
-                                          onChange={e => setPickupTime(e.target.value)}
-                                        />
-                                      </div>
-                                      <div className="mb-4">
-                                        <label className="block text-sm font-semibold mb-1">Dropoff Time</label>
-                                        <input
-                                          type="time"
-                                          className="w-full border rounded p-2"
-                                          value={dropoffTime}
-                                          onChange={e => setDropoffTime(e.target.value)}
-                                        />
-                                      </div>
-                                      <div className="flex gap-3 mt-4">
-                                        <Button className="flex-1" onClick={handleApprove}>Submit</Button>
-                                        <Button variant="ghost" className="flex-1" onClick={() => setShowApproveModal(false)}>Cancel</Button>
-                                      </div>
-                                    </div>
-                                  </>
-                                )}
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-semibold mb-1">Vehicle</label>
+                            <input
+                              type="text"
+                              className="w-full border rounded p-2"
+                              placeholder="Enter vehicle..."
+                              value={vehicle}
+                              onChange={e => setVehicle(e.target.value)}
+                            />
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-semibold mb-1">Pickup Time</label>
+                            <input
+                              type="time"
+                              className="w-full border rounded p-2"
+                              value={pickupTime}
+                              onChange={e => setPickupTime(e.target.value)}
+                            />
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-semibold mb-1">Dropoff Time</label>
+                            <input
+                              type="time"
+                              className="w-full border rounded p-2"
+                              value={dropoffTime}
+                              onChange={e => setDropoffTime(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-3 mt-4">
+                            <Button className="flex-1" onClick={handleApprove}>Submit</Button>
+                            <Button variant="ghost" className="flex-1" onClick={() => setShowApproveModal(false)}>Cancel</Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                     <Button variant="ghost" className="flex-1" onClick={() => setShowRejectModal(true)}>Reject</Button>
                   </div>
                 </div>
