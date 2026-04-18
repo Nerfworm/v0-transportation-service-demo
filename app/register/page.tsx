@@ -1,10 +1,10 @@
-// ...existing code...
 "use client"
 
 import type React from "react"
 
 import { useState } from "react"
-import { Bus, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -25,106 +25,116 @@ export default function RegisterPage() {
     confirmPassword: "",
   })
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [passwordMatchError, setPasswordMatchError] = useState("");
-  // Removed passwordRequirementsError state
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [passwordMatchError, setPasswordMatchError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   function validatePassword(password: string) {
-    // At least 8 chars, 1 upper, 1 lower, 1 digit, 1 symbol
-    const minLength = /.{8,}/;
-    const upper = /[A-Z]/;
-    const lower = /[a-z]/;
-    const digit = /[0-9]/;
-    const symbol = /[^A-Za-z0-9]/;
+    const minLength = /.{8,}/
+    const upper = /[A-Z]/
+    const lower = /[a-z]/
+    const digit = /[0-9]/
+    const symbol = /[^A-Za-z0-9]/
     return (
       minLength.test(password) &&
       upper.test(password) &&
       lower.test(password) &&
       digit.test(password) &&
       symbol.test(password)
-    );
+    )
   }
-  // Phone formatting function
+
   function formatPhoneNumber(value: string) {
-    let digits = value.replace(/\D/g, "");
-    if (digits.startsWith("1")) digits = digits.slice(1);
-    digits = digits.slice(0, 10);
-    let formatted = "+1 ";
+    let digits = value.replace(/\D/g, "")
+    if (digits.startsWith("1")) digits = digits.slice(1)
+    digits = digits.slice(0, 10)
+
+    let formatted = "+1 "
     if (digits.length > 0) {
-      formatted += "(" + digits.slice(0, 3);
+      formatted += "(" + digits.slice(0, 3)
     }
     if (digits.length >= 4) {
-      formatted += ") " + digits.slice(3, 6);
+      formatted += ") " + digits.slice(3, 6)
     }
     if (digits.length >= 7) {
-      formatted += "-" + digits.slice(6, 10);
+      formatted += "-" + digits.slice(6, 10)
     }
-    return formatted.trim();
+    return formatted.trim()
   }
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setFormData({ ...formData, phone: formatted });
-  };
+    const formatted = formatPhoneNumber(e.target.value)
+    setFormData({ ...formData, phone: formatted })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setPasswordMatchError("");
+    e.preventDefault()
+    setError("")
+    setPasswordMatchError("")
+    setLoading(true)
 
-    setLoading(true);
-
-    // Password requirements
     if (!validatePassword(formData.password)) {
-      setLoading(false);
-      return;
+      setLoading(false)
+      return
     }
 
-    // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
-      setPasswordMatchError("Passwords don't match");
-      setLoading(false);
-      return;
+      setPasswordMatchError("Passwords don't match")
+      setLoading(false)
+      return
     }
 
     try {
-      // Ensure phone is submitted as +1XXXXXXXXXX (E.164)
-      const digits = formData.phone.replace(/\D/g, "").slice(-10);
-      const phoneE164 = digits.length === 10 ? `+1${digits}` : formData.phone;
-      const submitData = { ...formData, phone: phoneE164 };
+      const digits = formData.phone.replace(/\D/g, "").slice(-10)
+      const phoneE164 = digits.length === 10 ? `+1${digits}` : formData.phone
+      const submitData = { ...formData, phone: phoneE164 }
+
       const res = await fetch(
         "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/register-account",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify(submitData),
         }
-      );
+      )
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
-        setLoading(false);
-        return;
+        setError(data.error || "Registration failed")
+        setLoading(false)
+        return
       }
 
-      // Redirect to staff-login after successful registration
-      router.push("/staff-login");
+      router.push("/staff-login")
     } catch (err: any) {
-      setError(err.message || "Unexpected error");
+      setError(err.message || "Unexpected error")
     }
 
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
+  const passwordsMatch =
+    formData.confirmPassword.length > 0 &&
+    formData.password === formData.confirmPassword
+
+  const passwordsDoNotMatch =
+    formData.confirmPassword.length > 0 &&
+    formData.password !== formData.confirmPassword
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
+    <main
+      className="min-h-screen flex items-center justify-center p-4 md:p-8"
+      style={{
+        background: "linear-gradient(180deg, #eaf1fb 0%, #142850 100%)",
+        minHeight: "100vh",
+      }}
+    >
       <div className="w-full max-w-lg">
         <Link
           href="/staff-login"
@@ -136,8 +146,14 @@ export default function RegisterPage() {
 
         <div className="bg-card rounded-xl shadow-lg p-6 md:p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="bg-primary p-2 rounded-lg">
-              <Bus className="h-6 w-6 text-primary-foreground" />
+            <div className="bg-primary p-2 rounded-lg flex items-center justify-center overflow-hidden">
+              <Image
+                src="/HavenWayAppLogo.png"
+                alt="HavenWay logo"
+                width={36}
+                height={36}
+                className="object-contain"
+              />
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-foreground">HavenWay</h1>
           </div>
@@ -145,6 +161,7 @@ export default function RegisterPage() {
           <h2 className="text-lg font-semibold text-foreground mb-6">Registration</h2>
 
           {error && <div className="text-red-500 mb-4">{error}</div>}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -157,6 +174,7 @@ export default function RegisterPage() {
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last name</Label>
                 <Input
@@ -192,14 +210,17 @@ export default function RegisterPage() {
                 maxLength={17}
                 required
               />
-              {formData.phone.replace(/\D/g, '').length === 10 ? null : (
+              {formData.phone.replace(/\D/g, "").length === 10 ? null : (
                 <div className="text-xs text-gray-500">Enter a 10-digit phone number</div>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="role">Role / Position</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value })}
+              >
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
@@ -222,17 +243,30 @@ export default function RegisterPage() {
               />
             </div>
 
-
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-              />
+
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  className="pr-10"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
               {!validatePassword(formData.password) && formData.password.length > 0 && (
                 <div className="text-xs text-red-500 mt-1">
                   Password must be at least 8 characters, include upper and lower case letters, a digit, and a symbol.
@@ -242,23 +276,45 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={(e) => {
-                  setFormData({ ...formData, confirmPassword: e.target.value });
-                  setPasswordMatchError("");
-                }}
-                required
-              />
-              {passwordMatchError && (
+
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => {
+                    setFormData({ ...formData, confirmPassword: e.target.value })
+                    setPasswordMatchError("")
+                  }}
+                  required
+                  className="pr-10"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              {passwordsDoNotMatch && (
+                <div className="text-red-500 text-sm mt-1">Passwords don't match</div>
+              )}
+
+              {passwordsMatch && (
+                <div className="text-green-600 text-sm mt-1">Passwords match</div>
+              )}
+
+              {passwordMatchError && !passwordsDoNotMatch && (
                 <div className="text-red-500 text-sm mt-1">{passwordMatchError}</div>
               )}
             </div>
 
-            <Button type="submit" className="w-full mt-6">
+            <Button type="submit" className="w-full mt-6" disabled={loading}>
               {loading ? "Creating..." : "Create new account"}
             </Button>
           </form>
