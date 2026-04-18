@@ -120,20 +120,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     >
       <header className="w-full bg-[#142850] py-3 px-6 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-4">
-          
-          {/* ✅ FIXED LOGO (ONLY CHANGE) */}
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center h-full">
             <Image
               src="/HavenWayFullLogo.png"
               alt="HavenWay full logo"
-              width={140}
-              height={40}
+              width={110}
+              height={32}
               className="object-contain"
               priority
             />
           </Link>
 
-          {/* ❗ NAV BUTTONS UNCHANGED */}
           <nav className="flex items-center gap-3 ml-2">
             <Link href="/dashboard/Home">
               <Button className="rounded-full text-lg px-16 py-6 font-semibold">
