@@ -1,19 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { Bus } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
 export default function MainSelectionPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
+    <main
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: "linear-gradient(180deg, #eaf1fb 0%, #142850 100%)",
+        minHeight: "100vh",
+      }}
+    >
       <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 w-full max-w-md text-center">
+        {/* LOGO + TITLE */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="bg-primary p-3 rounded-lg">
-            <Bus className="h-8 w-8 text-primary-foreground" />
+          <div className="bg-primary p-2 rounded-lg flex items-center justify-center">
+            <Image
+              src="/HavenWayAppLogo.png"
+              alt="HavenWay logo"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">HavenWay</h1>
+
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            HavenWay
+          </h1>
         </div>
+
+        {/* BUTTONS */}
         <div className="space-y-4">
           <Link href="/client-request" className="block">
             <Button
@@ -23,6 +41,7 @@ export default function MainSelectionPage() {
               Client Request Form
             </Button>
           </Link>
+
           <Link href="/staff-login" className="block">
             <Button
               variant="default"
@@ -36,4 +55,3 @@ export default function MainSelectionPage() {
     </main>
   );
 }
-
