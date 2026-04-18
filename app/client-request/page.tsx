@@ -57,6 +57,7 @@ export default function ClientRequestPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       const digits = formData.phone.replace(/\D/g, "").slice(-10);
       const phoneE164 =
@@ -133,7 +134,6 @@ export default function ClientRequestPage() {
         </Link>
 
         <div className="bg-card rounded-xl shadow-lg p-6 md:p-8">
-          {/* LOGO + TITLE */}
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-primary p-2 rounded-lg flex items-center justify-center overflow-hidden">
               <Image
@@ -144,15 +144,12 @@ export default function ClientRequestPage() {
                 className="object-contain"
               />
             </div>
-
             <h1 className="text-xl md:text-2xl font-bold text-foreground">
               Client Request Form
             </h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* (everything else unchanged) */}
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
@@ -199,7 +196,106 @@ export default function ClientRequestPage() {
               </div>
             </div>
 
-            {/* rest of form unchanged */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email (optional)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Email (optional)"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone # (optional)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Phone # (optional)"
+                  value={formData.phone}
+                  onChange={handlePhoneChange}
+                  maxLength={17}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sourceAddress">Source Address</Label>
+                <Input
+                  id="sourceAddress"
+                  placeholder="Source Address"
+                  value={formData.sourceAddress}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sourceAddress: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="destinationAddress">Destination Address</Label>
+                <Input
+                  id="destinationAddress"
+                  placeholder="Destination Address"
+                  value={formData.destinationAddress}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      destinationAddress: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="dropoffDate">Dropoff Date</Label>
+                <Input
+                  id="dropoffDate"
+                  type="date"
+                  placeholder="Dropoff Date"
+                  value={formData.dropoffDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dropoffDate: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="dropoffTime">Dropoff Time</Label>
+                <Input
+                  id="dropoffTime"
+                  type="time"
+                  placeholder="Dropoff Time"
+                  value={formData.dropoffTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dropoffTime: e.target.value })
+                  }
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="comments">Comments</Label>
+              <Textarea
+                id="comments"
+                placeholder="Additional comments or special requirements..."
+                value={formData.comments}
+                onChange={(e) =>
+                  setFormData({ ...formData, comments: e.target.value })
+                }
+                rows={4}
+              />
+            </div>
 
             <Button type="submit" className="w-full md:w-auto px-8 py-2">
               Submit
