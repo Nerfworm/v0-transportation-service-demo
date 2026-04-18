@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Bus, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -17,45 +18,52 @@ export default function StaffLoginPage() {
     password: "",
   })
 
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
-  setLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
 
-  try {
-    const res = await fetch(
-      "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/login",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify(formData),
-        credentials: "include" 
+    try {
+      const res = await fetch(
+        "https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(formData),
+          credentials: "include",
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || "Login failed")
+        setLoading(false)
+        return
       }
-    );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error || "Login failed");
-      setLoading(false);
-      return;
+      router.push("/dashboard/Home")
+    } catch (err: any) {
+      setError(err.message || "Unexpected error")
     }
 
-    router.push("/dashboard/Home");
-  } catch (err: any) {
-    setError(err.message || "Unexpected error");
+    setLoading(false)
   }
 
-  setLoading(false);
-};
   return (
-    <main className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, #eaf1fb 0%, #142850 100%)', minHeight: '100vh' }}>
+    <main
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: "linear-gradient(180deg, #eaf1fb 0%, #142850 100%)",
+        minHeight: "100vh",
+      }}
+    >
       <div className="w-full max-w-md">
         <Link
           href="/"
@@ -67,8 +75,14 @@ const handleSubmit = async (e: React.FormEvent) => {
 
         <div className="bg-card rounded-xl shadow-lg p-8">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="bg-primary p-3 rounded-lg">
-              <Bus className="h-8 w-8 text-primary-foreground" />
+            <div className="bg-primary p-2 rounded-lg flex items-center justify-center">
+              <Image
+                src="/HavenWayAppLogo.png"
+                alt="HavenWay logo"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Staff Login</h1>
           </div>
@@ -97,9 +111,10 @@ const handleSubmit = async (e: React.FormEvent) => {
               />
             </div>
 
-            <Button type="submit" className="w-full py-2">
-              Login
+            <Button type="submit" className="w-full py-2" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
             </Button>
+
             {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
           </form>
 
