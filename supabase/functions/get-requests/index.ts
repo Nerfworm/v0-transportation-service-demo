@@ -37,8 +37,10 @@ Deno.serve(async (req: Request) => {
     phone,
     source_address,
     destination_address,
+    requested_pickup_time,
     requested_dropoff_time,
     request_comment,
+    is_return,
     approved,
     approval_comment,
     transport:transport_id (
