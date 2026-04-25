@@ -51,6 +51,16 @@ async function getTravelDurationSeconds(origin: string, destination: string, dep
   }
 }
 
+async function getTravelDurationSecondsWithArrival(origin: string, destination: string, arrivalTime: Date): Promise<number | null> {
+  // First pass: get a rough duration without traffic to estimate departure time
+  const roughDuration = await getTravelDurationSeconds(origin, destination);
+  const estimatedDeparture = roughDuration !== null
+  ? new Date(arrivalTime.getTime() - roughDuration * 1000)
+  : new Date(arrivalTime.getTime() - 30 * 60 * 1000);
+
+  // Second pass: re-query with the estimated departure time for accurate traffic conditions
+  return await getTravelDurationSeconds(origin, destination, estimatedDeparture);
+}
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -108,7 +118,7 @@ Deno.serve(async (req) => {
     );
 
     const FALLBACK_BUFFER_MS = 30 * 60 * 1000;
-    const outboundDuration = await getTravelDurationSeconds(sourceAddress, destinationAddress, dropoff);
+    const outboundDuration = await getTravelDurationSecondsWithArrival(sourceAddress, destinationAddress, dropoff);
     const requestedPickupTime = outboundDuration !== null
       ? new Date(dropoff.getTime() - outboundDuration * 1000)
       : new Date(dropoff.getTime() - FALLBACK_BUFFER_MS);
