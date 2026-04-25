@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Home as HomeIcon, Calendar, Bell, Users, Settings } from "lucide-react"
 import Link from "next/link"
 import { fetchGetNotifications, markNotificationsRead } from "@/lib/edgeClient"
+import { UserProvider, useUser, ROLE } from "@/context/UserContext"
 
 interface Notification {
   id: number
@@ -110,7 +111,11 @@ function NotificationBell() {
   )
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+// Inner component so useUser() can be called inside the UserProvider
+function DashboardContent({ children }: { children: React.ReactNode }) {
+  const user = useUser()
+  const role = user?.role_id
+
   return (
     <main
       className="min-h-screen flex flex-col"
@@ -132,29 +137,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
 
           <nav className="flex items-center gap-3 ml-2">
+            {/* Everyone sees Home */}
             <Link href="/dashboard/Home">
               <Button className="rounded-full text-lg px-16 py-6 font-semibold">
                 <HomeIcon className="mr-2 w-6 h-6" /> Home
               </Button>
             </Link>
 
-            <Link href="/dashboard/calendar">
-              <Button className="rounded-full text-lg px-16 py-6 font-semibold">
-                <Calendar className="mr-2 w-6 h-6" /> Calendar
-              </Button>
-            </Link>
+            {/* Everyone except Transporters sees Calendar */}
+            {(role === ROLE.ADMIN || role === ROLE.TRANSPORTATION_COORDINATOR) && (
+              <Link href="/dashboard/calendar">
+                <Button className="rounded-full text-lg px-16 py-6 font-semibold">
+                  <Calendar className="mr-2 w-6 h-6" /> Calendar
+                </Button>
+              </Link>
+            )}
 
-            <Link href="/dashboard/review">
-              <Button className="rounded-full text-lg px-16 py-6 font-semibold">
-                <Bell className="mr-2 w-6 h-6" /> Review
-              </Button>
-            </Link>
+            {/* Admins and Reviewers see Review */}
+            {(role === ROLE.ADMIN || role === ROLE.REVIEWER) && (
+              <Link href="/dashboard/review">
+                <Button className="rounded-full text-lg px-16 py-6 font-semibold">
+                  <Bell className="mr-2 w-6 h-6" /> Review
+                </Button>
+              </Link>
+            )}
 
-            <Link href="/dashboard/drivers">
-              <Button className="rounded-full text-lg px-16 py-6 font-semibold">
-                <Users className="mr-2 w-6 h-6" /> Drivers
-              </Button>
-            </Link>
+            {/* Admins and Coordinators see Drivers */}
+            {(role === ROLE.ADMIN || role === ROLE.TRANSPORTATION_COORDINATOR) && (
+              <Link href="/dashboard/drivers">
+                <Button className="rounded-full text-lg px-16 py-6 font-semibold">
+                  <Users className="mr-2 w-6 h-6" /> Drivers
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
 
@@ -177,5 +192,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </div>
     </main>
+  )
+}
+
+// Outer component wraps everything in UserProvider
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <UserProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </UserProvider>
   )
 }

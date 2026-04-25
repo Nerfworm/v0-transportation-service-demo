@@ -1,15 +1,12 @@
 "use client"
 
-
 import { useState, useEffect } from "react"
-import { Bus, User, LogOut, Phone, Mail, Car } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Phone, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import DashboardLayout from '@/components/DashboardLayout'
-
+import { useUser, ROLE } from "@/context/UserContext"
 
 type Driver = {
   first_name: string;
@@ -19,10 +16,8 @@ type Driver = {
   supabase_uid: string;
 };
 
-
-
-
 export default function DriversPage() {
+  const user = useUser()
   const [driversList, setDriversList] = useState<Driver[]>([]);
 
   useEffect(() => {
@@ -40,12 +35,21 @@ export default function DriversPage() {
         if (data.valid && Array.isArray(data.data)) {
           setDriversList(data.data);
         }
-      } catch (err) {
-        // Optionally handle error
-      }
+      } catch (err) {}
     }
     fetchDrivers();
   }, []);
+
+  // Block Transporters and Reviewers from accessing this page
+  if (user && user.role_id !== ROLE.ADMIN && user.role_id !== ROLE.TRANSPORTATION_COORDINATOR) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">You don't have access to this page.</p>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
