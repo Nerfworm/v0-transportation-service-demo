@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 
 export default function ClientRequestPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -31,6 +33,23 @@ export default function ClientRequestPage() {
     dropoffTime: "",
     comments: "",
   });
+  const [submitModal, setSubmitModal] = useState<{
+    open: boolean;
+    status: "success" | "error";
+    message: string;
+  }>({
+    open: false,
+    status: "success",
+    message: "",
+  });
+
+  const showSubmitModal = (status: "success" | "error", message: string) => {
+    setSubmitModal({
+      open: true,
+      status,
+      message,
+    });
+  };
 
   function formatPhoneNumber(value: string) {
     let digits = value.replace(/\D/g, "");
@@ -92,28 +111,43 @@ export default function ClientRequestPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.error || "Request submission failed");
+        showSubmitModal("error", data.error || "Request submission failed");
         return;
       }
 
-      alert("Request submitted successfully!");
-
-      setFormData({
-        firstName: "",
-        lastName: "",
-        houseId: "",
-        email: "",
-        phone: "",
-        sourceAddress: "",
-        destinationAddress: "",
-        dropoffDate: "",
-        dropoffTime: "",
-        comments: "",
-      });
+      showSubmitModal("success", "Request submitted successfully!");
     } catch (err: any) {
       console.error(err);
-      alert("Unexpected error: " + (err.message || err));
+      showSubmitModal("error", "Unexpected error: " + (err.message || err));
     }
+  };
+
+  const handleSubmitAnother = () => {
+    setFormData((prev) => ({
+      firstName: prev.firstName,
+      lastName: prev.lastName,
+      houseId: prev.houseId,
+      email: prev.email,
+      phone: prev.phone,
+      sourceAddress: "",
+      destinationAddress: "",
+      dropoffDate: "",
+      dropoffTime: "",
+      comments: "",
+    }));
+
+    setSubmitModal((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
+
+  const handleExitForm = () => {
+    setSubmitModal((prev) => ({
+      ...prev,
+      open: false,
+    }));
+    router.push("/");
   };
 
   return (
@@ -303,6 +337,38 @@ export default function ClientRequestPage() {
           </form>
         </div>
       </div>
+
+      {submitModal.open && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-card rounded-xl shadow-lg p-6 md:p-8 w-full max-w-md text-center">
+              <h2
+                className={`text-xl md:text-2xl font-bold mb-3 ${
+                  submitModal.status === "success" ? "text-green-700" : "text-red-600"
+                }`}
+              >
+                {submitModal.status === "success" ? "Submission Successful" : "Submission Error"}
+              </h2>
+
+              <p className="text-foreground mb-6">{submitModal.message}</p>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                Would you like to submit another request or exit?
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button variant="outline" onClick={handleExitForm} className="w-full sm:w-auto bg-transparent">
+                  Exit
+                </Button>
+                <Button onClick={handleSubmitAnother} className="w-full sm:w-auto">
+                  Submit Another
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   );
 }
