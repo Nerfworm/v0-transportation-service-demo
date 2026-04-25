@@ -1,7 +1,5 @@
 "use client"
 
-
-
 import { Bus, ChevronLeft, ChevronRight, Calendar, Users, Bell } from "lucide-react"
 import DashboardLayout from '@/components/DashboardLayout'
 import { useRouter } from "next/navigation"
@@ -11,6 +9,90 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect } from "react"
 import { fetchGetRequests, fetchConfirmRequest } from "@/lib/edgeClient"
 import { getWeekDates } from '@/lib/events'
+
+// Phone formatting utility
+function formatPhoneNumber(value: string) {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("1")) digits = digits.slice(1);
+  digits = digits.slice(0, 10);
+  let formatted = "+1 ";
+  if (digits.length > 0) {
+    formatted += "(" + digits.slice(0, 3);
+  }
+  if (digits.length >= 4) {
+    formatted += ") " + digits.slice(3, 6);
+  }
+  if (digits.length >= 7) {
+    formatted += "-" + digits.slice(6, 10);
+  }
+  return formatted.trim();
+}
+
+// Phone input component
+function PhoneInput({ value, onChange }: { value: string, onChange: (v: string) => void }) {
+  return (
+    <input
+      className="w-full border rounded p-2"
+      placeholder="Phone"
+      value={value}
+      onChange={e => onChange(formatPhoneNumber(e.target.value))}
+    />
+  );
+}
+
+// Driver dropdown component
+function DriverDropdown({ value, onChange, driversList }: {
+  value: any,
+  onChange: (driver: any) => void,
+  driversList: any[],
+}) {
+  const [search, setSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        className="w-full border rounded p-2 mb-1"
+        placeholder="Search driver by name..."
+        required
+        value={
+          value && typeof value === 'object' ? `${value.first_name} ${value.last_name}` : search || value || ''
+        }
+        onChange={e => {
+          setSearch(e.target.value);
+          onChange("");
+          setShowDropdown(true);
+        }}
+        onFocus={() => setShowDropdown(true)}
+        onBlur={() => setTimeout(() => setShowDropdown(false), 100)}
+      />
+      {showDropdown && (
+        <div className="border rounded bg-white max-h-40 overflow-y-auto shadow-md w-full mt-1" style={{position: 'relative'}}>
+          {driversList
+            .filter(d =>
+              (d.first_name + " " + d.last_name).toLowerCase().includes(search.toLowerCase())
+            )
+            .map(d => (
+              <div
+                key={d.supabase_uid}
+                className={`px-3 py-2 cursor-pointer transition-colors
+                  ${value && typeof value === 'object' && value.supabase_uid === d.supabase_uid ? 'bg-gray-200 text-gray-900 font-semibold' : 'bg-white text-gray-900'}
+                  hover:bg-gray-100 hover:text-black`}
+                onMouseDown={e => {
+                  e.preventDefault();
+                  onChange(d);
+                  setSearch(`${d.first_name} ${d.last_name}`);
+                  setShowDropdown(false);
+                }}
+              >
+                {d.first_name} {d.last_name}
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Centralized driver fetch
 async function fetchGetDrivers() {
@@ -161,6 +243,26 @@ export default function CalendarPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [requestError, setRequestError] = useState<string | null>(null)
   const [showApproveModal, setShowApproveModal] = useState(false);
+  // Add Transport Modal state
+  const [showAddTransportModal, setShowAddTransportModal] = useState(false);
+  const [addTransportForm, setAddTransportForm] = useState({
+    firstName: '',
+    lastName: '',
+    houseName: '',
+    email: '',
+    phone: '',
+    pickupAddress: '',
+    destinationAddress: '',
+    arrivalDate: '',
+    arrivalTime: '',
+    driver: '',
+    vehicle: '',
+    pickupTime: '',
+    dropoffTime: '',
+    comments: '',
+    passengers: '',
+  });
+  const [addTransportError, setAddTransportError] = useState<string | null>(null);
   const [driversList, setDriversList] = useState<any[]>([]);
   const [driverSearch, setDriverSearch] = useState("");
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
@@ -179,6 +281,20 @@ export default function CalendarPage() {
       }
       if (showApproveModal) fetchDrivers();
     }, [showApproveModal]);
+
+    // Fetch drivers for Add Transport modal
+    useEffect(() => {
+      async function fetchDrivers() {
+        try {
+          const data = await fetchGetDrivers();
+          console.log("drivers data (add transport):", data.data);
+          if (data.valid && Array.isArray(data.data)) {
+            setDriversList(data.data);
+          }
+        } catch (err) {}
+      }
+      if (showAddTransportModal) fetchDrivers();
+    }, [showAddTransportModal]);
   // Helper to transform API data to ReviewRequest[]
   function transformRequests(data: any[]): ReviewRequest[] {
     return (data || [])
@@ -291,9 +407,111 @@ export default function CalendarPage() {
                 </Button>
               </div>
               <h2 className="text-lg font-semibold">{monthYear}</h2>
-              <Button variant="default" className="ml-4" onClick={() => alert('Add Transport form coming soon!')}>
+              <Button variant="default" className="ml-4" onClick={() => setShowAddTransportModal(true)}>
                 + Add Transport
               </Button>
+                  {/* Add Transport Modal */}
+                  {showAddTransportModal && (
+                    <>
+                      <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowAddTransportModal(false)} />
+                      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl z-50 w-[420px] max-w-[95vw] p-6">
+                        <button onClick={() => setShowAddTransportModal(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                        <h2 className="text-xl font-bold mb-4">Add New Transport</h2>
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            setAddTransportError(null);
+                            try {
+                              // Validate required fields
+                              const f = addTransportForm;
+                              if (!f.firstName || !f.lastName || !f.houseName || !f.pickupAddress || !f.destinationAddress || !f.arrivalDate || !f.arrivalTime || !f.driver || !f.vehicle || !f.pickupTime || !f.dropoffTime) {
+                                setAddTransportError("Please fill out all required fields.");
+                                return;
+                              }
+                              // Compose ISO dropoff time
+                              const dropoffISO = `${f.arrivalDate}T${f.arrivalTime}:00Z`;
+                              // Compose driver id
+                              let driverId = '';
+                              if (typeof f.driver === 'object' && f.driver !== null) {
+                                driverId = (f.driver as { supabase_uid: string }).supabase_uid;
+                              } else if (typeof f.driver === 'string') {
+                                driverId = f.driver;
+                              }
+                              // Call confirm-request edge function to create an approved transport
+                              // fetchConfirmRequest expects 7 arguments: requestId, status, reason, driverId, vehicle, pickupTime, dropoffTime
+                              const res = await fetchConfirmRequest(
+                                "",
+                                "Approved",
+                                undefined,
+                                driverId,
+                                f.vehicle,
+                                `${f.arrivalDate}T${f.pickupTime}:00Z`,
+                                `${f.arrivalDate}T${f.dropoffTime}:00Z`
+                              );
+                              if (!res.valid) {
+                                setAddTransportError(res.error || "Failed to create transport");
+                                return;
+                              }
+                              setShowAddTransportModal(false);
+                              setAddTransportForm({
+                                firstName: '', lastName: '', houseName: '', email: '', phone: '',
+                                pickupAddress: '', destinationAddress: '', arrivalDate: '', arrivalTime: '',
+                                driver: '', vehicle: '', pickupTime: '', dropoffTime: '', comments: '', passengers: '',
+                              });
+                              // Optionally refresh requests
+                              fetchGetRequests("").then((res) => {
+                                setRequests(transformRequests(res.data));
+                              });
+                            } catch (err: any) {
+                              setAddTransportError(err?.message || "Failed to create transport");
+                            }
+                          }}
+                          className="space-y-3"
+                        >
+                          <div className="flex gap-2">
+                            <input className="w-1/2 border rounded p-2" placeholder="First Name" required value={addTransportForm.firstName} onChange={e => setAddTransportForm(f => ({...f, firstName: e.target.value}))} />
+                            <input className="w-1/2 border rounded p-2" placeholder="Last Name" required value={addTransportForm.lastName} onChange={e => setAddTransportForm(f => ({...f, lastName: e.target.value}))} />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="houseName" className="block text-sm font-semibold mb-1">House Name</label>
+                            <Select
+                              value={addTransportForm.houseName}
+                              onValueChange={value => setAddTransportForm(f => ({ ...f, houseName: value }))}
+                            >
+                              <SelectTrigger id="houseName">
+                                <SelectValue placeholder="Select House Name" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="7">7</SelectItem>
+                                <SelectItem value="8">8</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <input className="w-full border rounded p-2" placeholder="Email" type="email" value={addTransportForm.email} onChange={e => setAddTransportForm(f => ({...f, email: e.target.value}))} />
+                          <PhoneInput value={addTransportForm.phone} onChange={v => setAddTransportForm(f => ({...f, phone: v}))} />
+                          <input className="w-full border rounded p-2" placeholder="Pickup Address" required value={addTransportForm.pickupAddress} onChange={e => setAddTransportForm(f => ({...f, pickupAddress: e.target.value}))} />
+                          <input className="w-full border rounded p-2" placeholder="Destination Address" required value={addTransportForm.destinationAddress} onChange={e => setAddTransportForm(f => ({...f, destinationAddress: e.target.value}))} />
+                          <div className="flex gap-2">
+                            <input className="w-1/2 border rounded p-2" type="date" required value={addTransportForm.arrivalDate} onChange={e => setAddTransportForm(f => ({...f, arrivalDate: e.target.value}))} />
+                            <input className="w-1/2 border rounded p-2" type="time" required value={addTransportForm.arrivalTime} onChange={e => setAddTransportForm(f => ({...f, arrivalTime: e.target.value}))} />
+                          </div>
+                          <DriverDropdown value={addTransportForm.driver} onChange={d => setAddTransportForm(f => ({...f, driver: d}))} driversList={driversList} />
+                          <input className="w-full border rounded p-2" placeholder="Vehicle" required value={addTransportForm.vehicle} onChange={e => setAddTransportForm(f => ({...f, vehicle: e.target.value}))} />
+                          <div className="flex gap-2">
+                            <input className="w-1/2 border rounded p-2" type="time" placeholder="Pickup Time" value={addTransportForm.pickupTime} onChange={e => setAddTransportForm(f => ({...f, pickupTime: e.target.value}))} />
+                            <input className="w-1/2 border rounded p-2" type="time" placeholder="Dropoff Time" value={addTransportForm.dropoffTime} onChange={e => setAddTransportForm(f => ({...f, dropoffTime: e.target.value}))} />
+                          </div>
+                          <input className="w-full border rounded p-2" placeholder="Passengers (optional)" value={addTransportForm.passengers} onChange={e => setAddTransportForm(f => ({...f, passengers: e.target.value}))} />
+                          <textarea className="w-full border rounded p-2" placeholder="Comments (optional)" value={addTransportForm.comments} onChange={e => setAddTransportForm(f => ({...f, comments: e.target.value}))} />
+                          {addTransportError && <div className="text-red-600 text-sm">{addTransportError}</div>}
+                          <div className="flex gap-3 mt-4">
+                            <Button className="flex-1" type="submit">Submit</Button>
+                            <Button variant="ghost" className="flex-1" type="button" onClick={() => setShowAddTransportModal(false)}>Cancel</Button>
+                          </div>
+                        </form>
+                      </div>
+                    </>
+                  )}
             </div>
 
             <div className="flex items-center gap-2">

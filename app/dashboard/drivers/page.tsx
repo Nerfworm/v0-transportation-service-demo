@@ -24,23 +24,9 @@ type Driver = {
 
 export default function DriversPage() {
   const [driversList, setDriversList] = useState<Driver[]>([]);
-  const [page, setPage] = useState(1);
-  const DRIVERS_PER_PAGE = 12;
-  const totalPages = Math.ceil(driversList.length / DRIVERS_PER_PAGE);
-  const paginatedDrivers = driversList.slice((page - 1) * DRIVERS_PER_PAGE, page * DRIVERS_PER_PAGE);
 
   useEffect(() => {
-    // Load from localStorage first
-    const cached = localStorage.getItem("drivers_list");
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        setDriversList(parsed);
-      } catch {}
-    }
-
-    // Fetch and cache function
-    const fetchAndCache = async () => {
+    async function fetchDrivers() {
       try {
         const res = await fetch("https://svvguxhkhesrlzmydghw.supabase.co/functions/v1/get-drivers", {
           method: "GET",
@@ -52,17 +38,13 @@ export default function DriversPage() {
         });
         const data = await res.json();
         if (data.valid && Array.isArray(data.data)) {
-          localStorage.setItem("drivers_list", JSON.stringify(data.data));
           setDriversList(data.data);
         }
       } catch (err) {
-        //
+        // Optionally handle error
       }
-    };
-
-    fetchAndCache();
-    const interval = setInterval(fetchAndCache, 60000);
-    return () => clearInterval(interval);
+    }
+    fetchDrivers();
   }, []);
 
   return (
@@ -72,7 +54,7 @@ export default function DriversPage() {
           <h1 className="text-2xl font-bold text-foreground">Drivers</h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginatedDrivers.map((driver) => (
+          {driversList.map((driver) => (
             <Card key={driver.supabase_uid} className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center gap-4">
                 <Avatar className="h-12 w-12">
@@ -97,26 +79,6 @@ export default function DriversPage() {
             </Card>
           ))}
         </div>
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-8">
-            <Button
-              variant="outline"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="mx-2 text-sm">Page {page} of {totalPages}</span>
-            <Button
-              variant="outline"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );

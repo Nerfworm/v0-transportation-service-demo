@@ -155,10 +155,8 @@ export default function RegisterPage() {
                 className="object-contain"
               />
             </div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">HavenWay</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Registration</h1>
           </div>
-
-          <h2 className="text-lg font-semibold text-foreground mb-6">Registration</h2>
 
           {error && <div className="text-red-500 mb-4">{error}</div>}
 

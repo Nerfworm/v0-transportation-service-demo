@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ valid: true, first_name: account.first_name, last_name: account.last_name, email: account.email, username: account.username, phone: account.phone }),
+    JSON.stringify({ valid: true, role_id: account.role_id, first_name: account.first_name, last_name: account.last_name, email: account.email, username: account.username, phone: account.phone }),
     { status: 200, headers }
   );
 });
