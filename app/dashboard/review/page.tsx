@@ -6,6 +6,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import DashboardLayout from '@/components/DashboardLayout'
+import { useUser, ROLE } from "@/context/UserContext"
 
 import { fetchGetRequests, fetchConfirmRequest  } from "@/lib/edgeClient"
 
@@ -36,6 +37,25 @@ export default function Page() {
   const REVIEWS_PER_PAGE = 6;
   const totalPages = Math.ceil(requests.length / REVIEWS_PER_PAGE);
   const paginatedRequests = requests.slice((page - 1) * REVIEWS_PER_PAGE, page * REVIEWS_PER_PAGE);
+  const user = useUser();
+
+  function formatTime(time: string) {
+    // Accepts 'YYYY-MM-DD HH:mm' or 'HH:mm' and returns 'h:mm AM/PM'
+    const t = time.trim().split(" ").pop() || "";
+    const [h, m] = t.split(":");
+    if (!h || !m) return time;
+    const hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour12}:${m} ${ampm}`;
+  }
+
+  function formatDate(date: string) {
+    // Accepts 'YYYY-MM-DD' and returns 'Month D, YYYY'
+    if (!date) return "";
+    const d = new Date(date);
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  }
 
   // Helper to transform API data to ReviewRequest[]
   function transformRequests(data: any[]): ReviewRequest[] {
@@ -120,29 +140,20 @@ const reject = async (id: string) => {
     setError(err?.message || "Failed to update status");
   }
 }
-  function formatTime(time: string) {
-    // Accepts 'YYYY-MM-DD HH:mm' or 'HH:mm' and returns 'h:mm AM/PM'
-    const t = time.trim().split(" ").pop() || "";
-    const [h, m] = t.split(":");
-    if (!h || !m) return time;
-    const hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
-    return `${hour12}:${m} ${ampm}`;
-  }
-
-  function formatDate(date: string) {
-    // Accepts 'YYYY-MM-DD' and returns 'Month D, YYYY'
-    if (!date) return "";
-    const d = new Date(date);
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  if (user && user.role_id !== ROLE.ADMIN && user.role_id !== ROLE.REVIEWER) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">You don't have access to this page.</p>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
     <DashboardLayout>
       <div>
         {/* Removed Incoming Transport Requests title header */}
-
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {error ? (

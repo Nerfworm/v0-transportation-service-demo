@@ -337,15 +337,62 @@ export default function CalendarPage() {
                             setAddTransportError("Please fill out all required fields.")
                             return
                           }
-                          let driverId = typeof f.driver === "object" && f.driver !== null
-                            ? (f.driver as { supabase_uid: string }).supabase_uid
+
+                          const driverId = typeof f.driver === "object" && f.driver !== null
+                            ? (f.driver as { id: number }).id
                             : f.driver
-                          const res = await fetchConfirmRequest(
-                            "", "Approved", undefined, driverId, f.vehicle,
-                            `${f.arrivalDate}T${f.pickupTime}:00Z`,
-                            `${f.arrivalDate}T${f.dropoffTime}:00Z`
-                          )
-                          if (!res.valid) { setAddTransportError(res.error || "Failed to create transport"); return }
+
+                          // Step 1: Create the request
+                          const submitRes = await fetch(`${BASE_URL}/submit-request`, {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                            },
+                            credentials: "include",
+                            body: JSON.stringify({
+                              firstName: f.firstName,
+                              lastName: f.lastName,
+                              houseId: f.houseName,
+                              email: f.email || null,
+                              phone: f.phone || null,
+                              sourceAddress: f.pickupAddress,
+                              destinationAddress: f.destinationAddress,
+                              dropoffTime: `${f.arrivalDate}T${f.arrivalTime}:00Z`,
+                              comments: f.comments || null,
+                            }),
+                          })
+
+                          const submitData = await submitRes.json()
+                          if (!submitRes.ok || !submitData.data?.id) {
+                            setAddTransportError(submitData.error || "Failed to create request")
+                            return
+                          }
+
+                          // Step 2: Immediately approve it with driver/vehicle/times
+                          const confirmRes = await fetch(`${BASE_URL}/confirm-request`, {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                            },
+                            credentials: "include",
+                            body: JSON.stringify({
+                              requestId: submitData.data.id,
+                              newState: "Approved",
+                              driver: driverId,
+                              vehicle: f.vehicle,
+                              pickupTime: `${f.arrivalDate}T${f.pickupTime}:00Z`,
+                              dropoffTime: `${f.arrivalDate}T${f.dropoffTime}:00Z`,
+                            }),
+                          })
+
+                          const confirmData = await confirmRes.json()
+                          if (!confirmRes.ok || !confirmData.valid) {
+                            setAddTransportError(confirmData.error || "Failed to approve transport")
+                            return
+                          }
+
                           setShowAddTransportModal(false)
                           setAddTransportForm({
                             firstName: "", lastName: "", houseName: "", email: "", phone: "",
