@@ -4,12 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Calendar,
-  Users,
   Bell,
   ChevronRight,
   AlertCircle,
   Clock,
-  Zap,
   MapPin,
   User,
   Car,
@@ -137,8 +135,6 @@ function rideStatus(pickupISO: string): { label: string; dotClass: string; textC
   return { label: "", dotClass: "", textClass: "" }
 }
 
-// Best available date for sorting/grouping: transport pickup if set,
-// otherwise fall back to the requested dropoff time.
 function bestDate(r: Request): Date | null {
   const iso = r.transport?.pickup_time ?? r.requested_dropoff_time
   if (!iso) return null
@@ -146,23 +142,34 @@ function bestDate(r: Request): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
-function groupUpcomingByDay(requests: Request[]) {
-  const upcoming = requests
-    .filter((r) => {
-      const isApproved = r.approved === "Approved" || r.approved === "approved"
-      if (!isApproved) return false
-      return bestDate(r) !== null
-    })
-    .sort((a, b) => bestDate(a)!.getTime() - bestDate(b)!.getTime())
+// ─── Week grouping: Approved + Pending, today → +6 days ──────────────────────
+
+function groupUpcomingByWeek(requests: Request[]) {
+  const keys: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() + i)
+    keys.push(d.toLocaleDateString("en-CA"))
+  }
 
   const grouped: Record<string, Request[]> = {}
-  upcoming.forEach((r) => {
-    const key = bestDate(r)!.toLocaleDateString("en-CA")
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push(r)
+  keys.forEach((k) => (grouped[k] = []))
+
+  requests.forEach((r) => {
+    const status = r.approved?.toLowerCase()
+    const isScheduled = status === "approved" || status === "pending"
+    if (!isScheduled) return
+    const d = bestDate(r)
+    if (!d) return
+    const key = d.toLocaleDateString("en-CA")
+    if (grouped[key] !== undefined) grouped[key].push(r)
   })
 
-  return { grouped, total: upcoming.length }
+  keys.forEach((k) => {
+    grouped[k].sort((a, b) => bestDate(a)!.getTime() - bestDate(b)!.getTime())
+  })
+
+  return { keys, grouped }
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -171,6 +178,7 @@ function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     Unreviewed: "bg-blue-50 text-blue-700 border-blue-200",
     Pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
     Approved: "bg-green-50 text-green-700 border-green-200",
     approved: "bg-green-50 text-green-700 border-green-200",
     Denied: "bg-red-50 text-red-700 border-red-200",
@@ -241,297 +249,6 @@ function StatsWidget({ stats, role }: { stats: Stats | null; role: number }) {
         ))}
       </div>
       <p className="text-xs text-muted-foreground">{stats.total} requests total</p>
-    </div>
-  )
-}
-
-// ─── Widget: Navigation ───────────────────────────────────────────────────────
-
-function NavWidget({ stats, role }: { stats: Stats | null; role: number }) {
-  const router = useRouter()
-
-  const badgeStyles: Record<string, string> = {
-    info:    "bg-blue-50 text-blue-700",
-    warn:    "bg-yellow-50 text-yellow-700",
-    success: "bg-green-50 text-green-700",
-    muted:   "bg-muted text-muted-foreground",
-  }
-
-  const links: { label: string; badge: string; href: string; variant: string }[] = [
-    ...(role === ROLE.ADMIN || role === ROLE.TRANSPORTATION_COORDINATOR
-      ? [{ label: "Calendar",     badge: stats ? `${stats.todayCount} today`      : "—", href: "/dashboard/calendar", variant: "info" }]
-      : []),
-    ...(role === ROLE.ADMIN || role === ROLE.REVIEWER
-      ? [{ label: "Review queue", badge: stats ? `${stats.unreviewed} new`        : "—", href: "/dashboard/review",   variant: "warn" }]
-      : []),
-    ...(role === ROLE.ADMIN || role === ROLE.TRANSPORTATION_COORDINATOR
-      ? [{ label: "Drivers",      badge: "",                                               href: "/dashboard/drivers", variant: "muted" }]
-      : []),
-    { label: "Settings", badge: "", href: "/settings", variant: "muted" },
-  ]
-
-  return (
-    <div className="divide-y divide-border">
-      {links.map((l) => (
-        <button
-          key={l.href}
-          onClick={() => router.push(l.href)}
-          className="w-full flex items-center justify-between py-3 text-left hover:opacity-70 transition-opacity group"
-        >
-          <span className="text-sm font-medium">{l.label}</span>
-          {l.badge ? (
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeStyles[l.variant]}`}>
-              {l.badge}
-            </span>
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-// ─── Widget: Week sparkline ───────────────────────────────────────────────────
-
-function WeekWidget({ stats }: { stats: Stats | null }) {
-  const router = useRouter()
-
-  if (!stats) {
-    return (
-      <div className="animate-pulse space-y-3">
-        <div className="h-8 w-24 bg-muted/40 rounded" />
-        <div className="h-10 bg-muted/40 rounded" />
-      </div>
-    )
-  }
-
-  const max = Math.max(...stats.weekCounts.map((d) => d.count), 1)
-
-  return (
-    <div className="cursor-pointer" onClick={() => router.push("/dashboard/calendar")}>
-      <p className="text-2xl font-semibold">
-        {stats.todayCount}{" "}
-        <span className="text-sm font-normal text-muted-foreground">rides today</span>
-      </p>
-      <div className="flex items-end gap-1 mt-4 h-10">
-        {stats.weekCounts.map((d) => {
-          const pct = Math.round((d.count / max) * 100)
-          return (
-            <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className="w-full rounded-t transition-all duration-300"
-                style={{
-                  height: `${pct}%`,
-                  minHeight: d.count > 0 ? 3 : 0,
-                  background: d.count > 0
-                    ? "hsl(221.2 83.2% 53.3%)"
-                    : "hsl(214.3 31.8% 91.4%)",
-                }}
-              />
-              <span className="text-[9px] text-muted-foreground">{d.day[0]}</span>
-            </div>
-          )
-        })}
-      </div>
-      <p className="text-xs text-primary mt-3 flex items-center gap-1">
-        View calendar <ChevronRight className="h-3 w-3" />
-      </p>
-    </div>
-  )
-}
-
-// ─── Widget: Upcoming transports ─────────────────────────────────────────────
-
-function UpcomingTransportsWidget({ stats }: { stats: Stats | null }) {
-  const router = useRouter()
-
-  if (!stats) {
-    return (
-      <div className="space-y-3 animate-pulse">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-14 bg-muted/40 rounded-md" />
-        ))}
-      </div>
-    )
-  }
-
-  const { grouped, total } = groupUpcomingByDay(stats.allRequests)
-
-  if (total === 0) {
-    return (
-      <div className="text-center py-6">
-        <CalendarDays className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-        <p className="text-sm text-muted-foreground">No approved transports found</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3 rounded-full text-xs h-7"
-          onClick={() => router.push("/dashboard/calendar")}
-        >
-          Open calendar
-        </Button>
-      </div>
-    )
-  }
-
-  // Show at most 2 day groups, 3 rides each
-  const dayEntries = Object.entries(grouped).slice(0, 2)
-  const shownCount = dayEntries.reduce((acc, [, rides]) => acc + Math.min(rides.length, 3), 0)
-  const remaining = total - shownCount
-
-  return (
-    <div>
-      {dayEntries.map(([dateKey, rides]) => (
-        <div key={dateKey} className="mb-3 last:mb-0">
-          {/* Day label */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-              {formatDateLabel(dateKey)}
-            </span>
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-[10px] text-muted-foreground">
-              {rides.length} ride{rides.length !== 1 ? "s" : ""}
-            </span>
-          </div>
-
-          {/* Ride rows */}
-          {rides.slice(0, 3).map((r) => {
-            // Use transport pickup if available, otherwise requested dropoff
-            const displayTime = formatTimeFromISO(
-              r.transport?.pickup_time ?? r.requested_dropoff_time
-            )
-            const dropoffTime = formatTimeFromISO(r.transport?.dropoff_time)
-            const driver = r.transport?.account
-              ? `${r.transport.account.first_name} ${r.transport.account.last_name}`
-              : null
-            const status = r.transport?.pickup_time
-              ? rideStatus(r.transport.pickup_time)
-              : null
-
-            return (
-              <div
-                key={r.id}
-                onClick={() => router.push("/dashboard/calendar")}
-                className="flex items-stretch gap-3 py-2.5 border-b border-border last:border-b-0 cursor-pointer hover:opacity-70 transition-opacity group"
-              >
-                {/* Time */}
-                <div className="flex flex-col items-end min-w-[38px] pt-0.5 flex-shrink-0">
-                  <span className="text-[13px] font-medium leading-tight text-foreground">
-                    {displayTime.replace(" AM", "").replace(" PM", "")}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {displayTime.includes("AM") ? "AM" : "PM"}
-                  </span>
-                </div>
-
-                {/* Vertical rule */}
-                <div className="w-px bg-border flex-shrink-0 my-0.5 rounded-full group-hover:bg-primary/30 transition-colors" />
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium truncate text-foreground">
-                    {r.first_name} {r.last_name}
-                  </p>
-                  {r.destination_address && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {r.destination_address}
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 mt-0.5">
-                    {driver ? (
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[11px] text-muted-foreground">{driver}</span>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-yellow-600 font-medium">No driver</span>
-                    )}
-                    {r.transport?.vehicle && (
-                      <div className="flex items-center gap-1">
-                        <Car className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[11px] text-muted-foreground">
-                          {r.transport.vehicle}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right */}
-                <div className="flex flex-col items-end justify-between flex-shrink-0 gap-1">
-                  {dropoffTime && (
-                    <span className="text-[10px] text-muted-foreground">→ {dropoffTime}</span>
-                  )}
-                  {status?.label && (
-                    <span className={`text-[10px] flex items-center gap-1 ${status.textClass}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass} flex-shrink-0`} />
-                      {status.label}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      ))}
-
-      {remaining > 0 && (
-        <button
-          className="text-xs text-primary mt-1 flex items-center gap-1 hover:opacity-70 transition-opacity"
-          onClick={() => router.push("/dashboard/calendar")}
-        >
-          +{remaining} more <ChevronRight className="h-3 w-3" />
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ─── Widget: Recent activity ──────────────────────────────────────────────────
-
-function RecentWidget({ stats }: { stats: Stats | null }) {
-  const router = useRouter()
-
-  if (!stats) {
-    return (
-      <div className="space-y-3 animate-pulse">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-10 bg-muted/40 rounded-md" />
-        ))}
-      </div>
-    )
-  }
-
-  if (stats.recent.length === 0) {
-    return <p className="text-sm text-muted-foreground">No recent requests.</p>
-  }
-
-  return (
-    <div className="divide-y divide-border">
-      {stats.recent.map((r) => (
-        <div
-          key={r.id}
-          className="py-2.5 flex items-center justify-between cursor-pointer hover:opacity-70 transition-opacity"
-          onClick={() => router.push("/dashboard/review")}
-        >
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor(r.approved)}`} />
-            <div>
-              <p className="text-sm font-medium leading-tight">
-                {r.first_name} {r.last_name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {timeSince(r.requested_dropoff_time)}
-              </p>
-            </div>
-          </div>
-          <StatusBadge status={r.approved} />
-        </div>
-      ))}
     </div>
   )
 }
@@ -610,38 +327,189 @@ function MyRidesWidget({ stats }: { stats: Stats | null }) {
   )
 }
 
-// ─── Widget: Quick actions ────────────────────────────────────────────────────
+// ─── Widget: Week transport calendar ─────────────────────────────────────────
 
-function QuickActionsWidget({ role }: { role: number }) {
+function WeekTransportWidget({ stats }: { stats: Stats | null }) {
   const router = useRouter()
 
-  const actions: { label: string; href: string }[] =
-    role === ROLE.REVIEWER
-      ? [
-          { label: "Open review queue", href: "/dashboard/review" },
-          { label: "Settings",          href: "/settings"          },
-        ]
-      : role === ROLE.TRANSPORTER
-      ? [{ label: "Settings", href: "/settings" }]
-      : [
-          { label: "+ Add transport",    href: "/dashboard/calendar" },
-          { label: "Schedule pending",   href: "/dashboard/calendar" },
-          { label: "Drivers list",       href: "/dashboard/drivers"  },
-          { label: "This week's rides",  href: "/dashboard/calendar" },
-        ]
+  if (!stats) {
+    return (
+      <div className="animate-pulse grid grid-cols-7 gap-1.5">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <div className="h-6 bg-muted/40 rounded" />
+            <div className="h-12 bg-muted/30 rounded" />
+          </div>
+        ))}
+      </div>
+    )
+  }
 
-  return (
-    <div className="flex flex-wrap gap-2">
-      {actions.map((a) => (
+  const { keys, grouped } = groupUpcomingByWeek(stats.allRequests)
+  const todayKey = new Date().toLocaleDateString("en-CA")
+  const totalThisWeek = keys.reduce((acc, k) => acc + grouped[k].length, 0)
+
+  if (totalThisWeek === 0) {
+    return (
+      <div className="text-center py-6">
+        <CalendarDays className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
+        <p className="text-sm text-muted-foreground">No upcoming transports this week</p>
         <Button
-          key={a.label}
           variant="outline"
           size="sm"
-          className="rounded-full text-xs h-7"
-          onClick={() => router.push(a.href)}
+          className="mt-3 rounded-full text-xs h-7"
+          onClick={() => router.push("/dashboard/calendar")}
         >
-          {a.label}
+          Open calendar
         </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <div className="grid grid-cols-7 gap-1.5 min-w-[560px]">
+        {keys.map((dateKey) => {
+          const rides = grouped[dateKey]
+          const isToday = dateKey === todayKey
+          const d = new Date(dateKey + "T00:00:00")
+          const dayName = d.toLocaleDateString("en-US", { weekday: "short" })
+          const dayNum = d.getDate()
+
+          return (
+            <div
+              key={dateKey}
+              className={`flex flex-col rounded-lg border transition-all cursor-pointer
+                ${isToday
+                  ? "border-primary/40 bg-primary/5 shadow-sm"
+                  : "border-border bg-muted/20 hover:bg-muted/40"
+                }`}
+              onClick={() => router.push("/dashboard/calendar")}
+            >
+              {/* Day header */}
+              <div
+                className={`px-2 py-1.5 border-b flex flex-col items-center
+                  ${isToday ? "border-primary/20" : "border-border"}`}
+              >
+                <span
+                  className={`text-[10px] font-semibold uppercase tracking-wider
+                    ${isToday ? "text-primary" : "text-muted-foreground"}`}
+                >
+                  {dayName}
+                </span>
+                <span
+                  className={`text-base font-bold leading-tight
+                    ${isToday ? "text-primary" : "text-foreground"}`}
+                >
+                  {dayNum}
+                </span>
+                {rides.length > 0 && (
+                  <span
+                    className={`text-[9px] mt-0.5 px-1.5 py-0.5 rounded-full font-medium
+                      ${isToday
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground"}`}
+                  >
+                    {rides.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Ride list */}
+              <div className="flex flex-col gap-1 p-1.5 overflow-y-auto max-h-[180px]">
+                {rides.length === 0 ? (
+                  <div className="flex items-center justify-center h-10">
+                    <span className="text-[10px] text-muted-foreground/40">—</span>
+                  </div>
+                ) : (
+                  rides.map((r) => {
+                    const pickupTime = formatTimeFromISO(
+                      r.transport?.pickup_time ?? r.requested_dropoff_time
+                    )
+                    const driver = r.transport?.account
+                      ? `${r.transport.account.first_name} ${r.transport.account.last_name}`
+                      : null
+                    const isPending = r.approved?.toLowerCase() === "pending"
+
+                    return (
+                      <div
+                        key={r.id}
+                        className={`rounded px-1.5 py-1 text-left transition-colors
+                          ${isToday
+                            ? "bg-primary/10 hover:bg-primary/20"
+                            : "bg-background hover:bg-muted/60"
+                          }`}
+                      >
+                        <p className="text-[11px] font-semibold text-foreground truncate leading-tight">
+                          {r.first_name} {r.last_name}
+                        </p>
+                        {pickupTime && (
+                          <p className={`text-[10px] ${isToday ? "text-primary/80" : "text-muted-foreground"}`}>
+                            {pickupTime}
+                          </p>
+                        )}
+                        {isPending ? (
+                          <span className="text-[10px] text-yellow-600 font-medium">Pending</span>
+                        ) : driver ? (
+                          <div className="flex items-center gap-0.5 mt-0.5">
+                            <User className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
+                            <span className="text-[10px] text-muted-foreground truncate">{driver}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-yellow-600 font-medium">No driver</span>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Widget: Recent activity ──────────────────────────────────────────────────
+
+function RecentWidget({ stats }: { stats: Stats | null }) {
+  const router = useRouter()
+
+  if (!stats) {
+    return (
+      <div className="space-y-3 animate-pulse">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-10 bg-muted/40 rounded-md" />
+        ))}
+      </div>
+    )
+  }
+
+  if (stats.recent.length === 0) {
+    return <p className="text-sm text-muted-foreground">No recent requests.</p>
+  }
+
+  return (
+    <div className="divide-y divide-border">
+      {stats.recent.map((r) => (
+        <div key={r.id} className="flex items-center gap-3 py-2.5">
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor(r.approved)}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {r.first_name} {r.last_name}
+            </p>
+            {r.destination_address && (
+              <p className="text-xs text-muted-foreground truncate">{r.destination_address}</p>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <StatusBadge status={r.approved} />
+            <span className="text-[10px] text-muted-foreground">
+              {timeSince(r.requested_dropoff_time)}
+            </span>
+          </div>
+        </div>
       ))}
     </div>
   )
@@ -698,34 +566,23 @@ export default function HomePage() {
     <DashboardLayout>
       <section className="max-w-6xl mx-auto space-y-4">
 
-        {/* ── Row 1: Stats · Nav · Notifications ──────────────────────────
-            Always exactly 3 columns on lg. Each widget gets one slot with
-            no col-span trickery so nothing can go missing.                 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* ── Row 1: Stats · Notifications ──────────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                {isDriver    ? <><Calendar className="h-4 w-4" />    My rides</>
-                : isReviewer  ? <><Clock className="h-4 w-4" />      Review queue</>
-                :               <><AlertCircle className="h-4 w-4" /> Request overview</>}
+                {isDriver
+                  ? <><Calendar className="h-4 w-4" /> My rides</>
+                  : isReviewer
+                  ? <><Clock className="h-4 w-4" /> Review queue</>
+                  : <><AlertCircle className="h-4 w-4" /> Request overview</>}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {isDriver
                 ? <MyRidesWidget stats={stats} />
                 : <StatsWidget stats={stats} role={role} />}
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ChevronRight className="h-4 w-4" /> Navigate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NavWidget stats={stats} role={role} />
             </CardContent>
           </Card>
 
@@ -745,92 +602,37 @@ export default function HomePage() {
 
         </div>
 
-        {/* ── Row 2: Upcoming transports (2/3) · This week (1/3) ──────────
-            Isolated grid — only these two cards live here so the          
-            lg:col-span-2 is always unambiguous.                           */}
-        {(isAdmin || isTC) && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* ── Row 2: Week transport calendar — ALL roles ─────────────────── */}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between text-base">
+              <span className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" />
+                This week's transports
+              </span>
+              <button
+                className="text-xs text-primary font-normal hover:opacity-70 transition-opacity"
+                onClick={() => router.push("/dashboard/calendar")}
+              >
+                Open calendar →
+              </button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WeekTransportWidget stats={stats} />
+          </CardContent>
+        </Card>
 
-            <Card className="hover:shadow-md transition-shadow lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-base">
-                  <span className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4" />
-                    Upcoming transports
-                  </span>
-                  <button
-                    className="text-xs text-primary font-normal hover:opacity-70 transition-opacity"
-                    onClick={() => router.push("/dashboard/calendar")}
-                  >
-                    View all →
-                  </button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <UpcomingTransportsWidget stats={stats} />
-              </CardContent>
-            </Card>
-
-            <Card
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => router.push("/dashboard/calendar")}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Calendar className="h-4 w-4" /> This week
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <WeekWidget stats={stats} />
-              </CardContent>
-            </Card>
-
-          </div>
-        )}
-
-        {/* ── Row 3: Recent requests (2/3) · Quick actions (1/3) ──────────
-            Admin and Reviewer both get this row. Quick actions sits in    
-            the third column alongside recent requests.                    */}
+        {/* ── Row 3: Recent requests — Admin and Reviewer ───────────────── */}
         {(isAdmin || isReviewer) && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-            <Card className="hover:shadow-md transition-shadow lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Clock className="h-4 w-4" /> Recent requests
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RecentWidget stats={stats} />
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Zap className="h-4 w-4" /> Quick actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <QuickActionsWidget role={role} />
-              </CardContent>
-            </Card>
-
-          </div>
-        )}
-
-        {/* ── Quick actions standalone ─────────────────────────────────────
-            TC and Driver don't get a Recent requests row, so Quick        
-            actions gets its own card below.                               */}
-        {!isAdmin && !isReviewer && (
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Zap className="h-4 w-4" /> Quick actions
+                <Clock className="h-4 w-4" /> Recent requests
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <QuickActionsWidget role={role} />
+              <RecentWidget stats={stats} />
             </CardContent>
           </Card>
         )}
